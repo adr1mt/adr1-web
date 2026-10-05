@@ -15,16 +15,16 @@ interface Props {
 const { title, description, currentTag, searchable = false, showTags = true } = Astro.props;
 
 const counts = new Map<string, number>();
-for (const p of await getPosts()) for (const t of p.data.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
-const tags = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ca'));
+for (const p of await getPosts()) counts.set(p.data.tag, (counts.get(p.data.tag) ?? 0) + 1);
+const tags = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'es'));
 ---
 
 <BaseLayout title={title} description={description} current="blog">
   <main id="contingut" class="blog" tabindex="-1" data-pagefind-body={searchable ? '' : undefined}>
     <slot name="intro" />
     {showTags && tags.length > 0 && (
-      <nav class="tag-filter" aria-label="Etiquetes" data-pagefind-ignore="all">
-        <a href={href('/blog/')} aria-current={currentTag ? undefined : 'page'}>Totes</a>
+      <nav class="tag-filter" aria-label="Etiquetas" data-pagefind-ignore="all">
+        <a href={href('/blog/')} aria-current={currentTag ? undefined : 'page'}>Todas</a>
         {tags.map(([t, n]) => (
           <a href={tagUrl(t)} aria-current={currentTag === tagSlug(t) ? 'page' : undefined}>{t} ({n})</a>
         ))}

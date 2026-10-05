@@ -44,7 +44,7 @@ export const postUrl = (post: BlogPost) => href(`/blog/${post.id}/`);
 export const tagSlug = (tag: string) =>
   tag.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-export const tagUrl = (tag: string) => href(`/blog/etiquetes/${tagSlug(tag)}/`);
+export const tagUrl = (tag: string) => href(`/blog/etiquetas/${tagSlug(tag)}/`);
 
 export const formatDate = (date: Date) =>
-  date.toLocaleDateString('ca-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
