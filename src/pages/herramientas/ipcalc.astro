@@ -1,0 +1,341 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { href } from '../../lib/site';
+
+// Rows of the result table; the script fills them by id.
+const rows = [
+  { id: 'address', label: 'Dirección' },
+  { id: 'netmask', label: 'Máscara' },
+  { id: 'wildcard', label: 'Wildcard' },
+  { id: 'network', label: 'Red' },
+  { id: 'broadcast', label: 'Broadcast' },
+  { id: 'hostmin', label: 'Primer host' },
+  { id: 'hostmax', label: 'Último host' },
+];
+---
+
+<BaseLayout title="IPCalc · Herramientas" description="Calculadora IPv4: red, broadcast, rango de hosts y subredes." current="herramientas">
+  <main id="contingut" class="calc" tabindex="-1">
+    <p class="crumb"><a href={href('/herramientas/')}>Herramientas</a></p>
+    <h1 class="page-title">IPCalc</h1>
+
+    <form class="input" autocomplete="off" onsubmit="return false">
+      <label for="ip">Dirección IPv4</label>
+      <input id="ip" type="text" inputmode="decimal" spellcheck="false" value="192.168.1.10/24" aria-describedby="ip-help" />
+      <p id="ip-help" class="help">Admite <code>10.0.0.5/8</code>, <code>10.0.0.5 255.0.0.0</code> o solo la IP.</p>
+
+      <div class="prefix">
+        <label for="prefix">Prefijo</label>
+        <input id="prefix" type="range" min="0" max="32" value="24" />
+        <output id="prefix-out" for="prefix">/24</output>
+      </div>
+    </form>
+
+    <p id="error" class="error" role="alert" hidden></p>
+
+    <section id="result" aria-live="polite">
+      <dl class="stats">
+        <div><dt>Hosts útiles</dt><dd id="hosts"></dd></div>
+        <div><dt>Clase</dt><dd id="class"></dd></div>
+        <div><dt>Tipo</dt><dd id="type"></dd></div>
+      </dl>
+
+      <div class="table" role="table" aria-label="Resultado">
+        {rows.map((r) => (
+          <div class="row" role="row">
+            <span class="label" role="rowheader">{r.label}</span>
+            <span class="dec" role="cell" id={r.id}></span>
+            <span class="bin" role="cell" id={`${r.id}-bin`} aria-hidden="true"></span>
+          </div>
+        ))}
+      </div>
+      <p class="legend"><span class="n">■</span> bits de red <span class="h">■</span> bits de host</p>
+
+      <h2>Subredes</h2>
+      <div class="split">
+        <label for="split">Dividir en</label>
+        <select id="split"></select>
+        <span id="split-info" class="muted"></span>
+      </div>
+      <div class="subnets-wrap">
+        <table class="subnets">
+          <thead><tr><th>#</th><th>Red</th><th>Hosts</th><th>Broadcast</th></tr></thead>
+          <tbody id="subnets"></tbody>
+        </table>
+      </div>
+      <p id="subnets-more" class="muted" hidden></p>
+    </section>
+  </main>
+</BaseLayout>
+
+<script>
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const ipInput = $<HTMLInputElement>('ip');
+  const prefixInput = $<HTMLInputElement>('prefix');
+  const splitSelect = $<HTMLSelectElement>('split');
+  const MAX_SUBNETS = 256;
+
+  // IPv4 as unsigned 32-bit numbers.
+  const toInt = (s: string) => {
+    const parts = s.split('.');
+    if (parts.length !== 4 || !parts.every((p) => /^\d{1,3}$/.test(p) && +p <= 255)) return null;
+    return parts.reduce((acc, p) => acc * 256 + +p, 0);
+  };
+  const toDotted = (n: number) => [24, 16, 8, 0].map((s) => (n >>> s) & 255).join('.');
+  const maskOf = (p: number) => (p === 0 ? 0 : (0xffffffff << (32 - p)) >>> 0);
+  const prefixOfMask = (m: number) => {
+    const p = 32 - Math.log2((~m >>> 0) + 1);
+    return Number.isInteger(p) ? p : null;
+  };
+
+  // Binary with network bits and host bits marked, grouped by octet.
+  function binary(n: number, prefix: number) {
+    const bits = n.toString(2).padStart(32, '0');
+    let html = '';
+    for (let i = 0; i < 32; i++) {
+      if (i && i % 8 === 0) html += '<span class="dot">.</span>';
+      html += `<span class="${i < prefix ? 'n' : 'h'}">${bits[i]}</span>`;
+    }
+    return html;
+  }
+
+  function classOf(ip: number) {
+    const a = ip >>> 24;
+    return a < 128 ? 'A' : a < 192 ? 'B' : a < 224 ? 'C' : a < 240 ? 'D' : 'E';
+  }
+
+  const RANGES: [string, number, string][] = [
+    ['10.0.0.0', 8, 'Privada'],
+    ['172.16.0.0', 12, 'Privada'],
+    ['192.168.0.0', 16, 'Privada'],
+    ['127.0.0.0', 8, 'Loopback'],
+    ['169.254.0.0', 16, 'Enlace local'],
+    ['100.64.0.0', 10, 'CGNAT'],
+    ['0.0.0.0', 8, 'Esta red'],
+    ['224.0.0.0', 4, 'Multicast'],
+    ['240.0.0.0', 4, 'Reservada'],
+  ];
+  function typeOf(ip: number) {
+    for (const [net, p, name] of RANGES) {
+      if (((ip & maskOf(p)) >>> 0) === toInt(net)) return name;
+    }
+    return 'Pública';
+  }
+
+  // Network, broadcast and host range. /31 (RFC 3021) and /32 have no broadcast.
+  function block(ip: number, p: number) {
+    const mask = maskOf(p);
+    const network = (ip & mask) >>> 0;
+    const broadcast = (network | ~mask) >>> 0;
+    if (p === 32) return { network, broadcast: null, min: network, max: network, hosts: 1 };
+    if (p === 31) return { network, broadcast: null, min: network, max: broadcast, hosts: 2 };
+    return { network, broadcast, min: network + 1, max: broadcast - 1, hosts: broadcast - network - 1 };
+  }
+
+  const fmt = (n: number) => n.toLocaleString('es-ES');
+
+  // Reads "ip", "ip/prefix" or "ip mask". Returns the address and, if given, the prefix.
+  function parse(text: string) {
+    const m = text.trim().match(/^([\d.]+)(?:\s*\/\s*(\d{1,2})|\s+([\d.]+))?$/);
+    if (!m) return null;
+    const ip = toInt(m[1]);
+    if (ip === null) return null;
+    if (m[2] !== undefined) return +m[2] <= 32 ? { ip, prefix: +m[2] } : null;
+    if (m[3] !== undefined) {
+      const mask = toInt(m[3]);
+      const prefix = mask === null ? null : prefixOfMask(mask);
+      return prefix === null ? null : { ip, prefix };
+    }
+    return { ip, prefix: null };
+  }
+
+  function set(id: string, dec: string, n: number | null, prefix: number) {
+    $(id).textContent = dec;
+    $(`${id}-bin`).innerHTML = n === null ? '' : binary(n, prefix);
+  }
+
+  function render() {
+    const parsed = parse(ipInput.value);
+    const error = $('error');
+    const result = $('result');
+    if (!parsed) {
+      error.textContent = 'Dirección no válida. Ejemplo: 192.168.1.10/24';
+      error.hidden = false;
+      result.classList.add('stale');
+      return;
+    }
+    error.hidden = true;
+    result.classList.remove('stale');
+
+    if (parsed.prefix !== null) prefixInput.value = String(parsed.prefix);
+    const p = +prefixInput.value;
+    $('prefix-out').textContent = `/${p}`;
+
+    const { ip } = parsed;
+    const mask = maskOf(p);
+    const b = block(ip, p);
+
+    set('address', toDotted(ip), ip, p);
+    set('netmask', `${toDotted(mask)} = /${p}`, mask, p);
+    set('wildcard', toDotted(~mask >>> 0), ~mask >>> 0, p);
+    set('network', `${toDotted(b.network)}/${p}`, b.network, p);
+    set('broadcast', b.broadcast === null ? '—' : toDotted(b.broadcast), b.broadcast, p);
+    set('hostmin', toDotted(b.min), b.min, p);
+    set('hostmax', toDotted(b.max), b.max, p);
+    $('hosts').textContent = fmt(b.hosts);
+    $('class').textContent = classOf(ip);
+    $('type').textContent = typeOf(ip);
+
+    renderSplit(b.network, p);
+    history.replaceState(null, '', `#${toDotted(ip)}/${p}`);
+  }
+
+  // The split choice is kept only while the prefix stays the same.
+  let lastPrefix = -1;
+  function renderSplit(network: number, p: number) {
+    const wanted = p === lastPrefix ? +splitSelect.value : p + 1;
+    lastPrefix = p;
+    splitSelect.innerHTML = '';
+    for (let q = p + 1; q <= 32; q++) splitSelect.add(new Option(`/${q}`, String(q), false, q === wanted));
+    const tbody = $('subnets');
+    const more = $('subnets-more');
+    tbody.innerHTML = '';
+    if (p === 32) {
+      splitSelect.disabled = true;
+      $('split-info').textContent = 'Una /32 no se puede dividir.';
+      more.hidden = true;
+      return;
+    }
+    splitSelect.disabled = false;
+    const q = +splitSelect.value;
+    const count = 2 ** (q - p);
+    const size = 2 ** (32 - q);
+    const hosts = block(0, q).hosts;
+    $('split-info').textContent = `${fmt(count)} subredes de ${fmt(hosts)} ${hosts === 1 ? 'host' : 'hosts'}`;
+    const rows = [];
+    for (let i = 0; i < Math.min(count, MAX_SUBNETS); i++) {
+      const s = block(network + i * size, q);
+      const range = s.hosts === 1 ? toDotted(s.min) : `${toDotted(s.min)} – ${toDotted(s.max)}`;
+      rows.push(`<tr><td>${i + 1}</td><td>${toDotted(s.network)}/${q}</td><td>${range}</td><td>${s.broadcast === null ? '—' : toDotted(s.broadcast)}</td></tr>`);
+    }
+    tbody.innerHTML = rows.join('');
+    more.hidden = count <= MAX_SUBNETS;
+    more.textContent = `Se muestran las primeras ${MAX_SUBNETS} de ${fmt(count)}.`;
+  }
+
+  // The prefix slider overrides whatever prefix the text field had.
+  prefixInput.addEventListener('input', () => {
+    const parsed = parse(ipInput.value);
+    if (parsed) ipInput.value = `${toDotted(parsed.ip)}/${prefixInput.value}`;
+    render();
+  });
+  ipInput.addEventListener('input', render);
+  splitSelect.addEventListener('change', render);
+
+  // A shared link (…/ipcalc/#10.0.0.1/8) opens with that address.
+  if (location.hash.length > 1) ipInput.value = decodeURIComponent(location.hash.slice(1));
+  render();
+</script>
+
+<style>
+  .calc { max-width: calc(var(--measure) + 4rem); margin: 0 auto; padding: 2rem var(--gutter) 0; }
+  .calc:focus { outline: none; }
+  .crumb { margin: 0 0 0.5rem; font-size: 0.875rem; }
+  .page-title { margin-bottom: 1.5rem; }
+  .muted, .help, .legend { color: var(--muted); font-size: 0.875rem; }
+  code { font-family: var(--font-mono); font-size: 0.85em; background: var(--bg-soft); border-radius: 0.25rem; padding: 0.1em 0.3em; }
+
+  /* ---------- Input ---------- */
+  .input label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.35rem; }
+  #ip {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font: 500 1.5rem/1.2 var(--font-mono);
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--rule-strong);
+    border-radius: 0.5rem;
+  }
+  #ip:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .help { margin: 0.4rem 0 1.25rem; }
+
+  .prefix { display: grid; grid-template-columns: auto 1fr 3.5rem; align-items: center; gap: 1rem; }
+  .prefix label { margin: 0; }
+  .prefix input { width: 100%; accent-color: var(--accent); }
+  .prefix output { font: 600 1.125rem var(--font-mono); color: var(--accent-high); text-align: right; }
+
+  .error { margin: 1rem 0 0; padding: 0.6rem 0.9rem; border-radius: var(--radius); background: var(--ko-soft); color: var(--ko); font-size: 0.9rem; }
+  #result { transition: opacity 0.15s; }
+  #result.stale { opacity: 0.4; }
+
+  /* ---------- Summary ---------- */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    margin: 2rem 0 1.5rem;
+    border-block: 1px solid var(--rule);
+  }
+  .stats div { padding: 0.9rem 0; text-align: center; }
+  .stats div + div { border-left: 1px solid var(--rule); }
+  .stats dt { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+  .stats dd { margin: 0.15rem 0 0; font: 600 1.375rem var(--font-mono); color: var(--ink); }
+
+  /* ---------- Result table ---------- */
+  .row {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .label { font-size: 0.875rem; color: var(--muted); }
+  .dec { font: 500 1rem var(--font-mono); color: var(--ink); }
+  .bin { font: 0.8125rem var(--font-mono); letter-spacing: 0.02em; white-space: nowrap; }
+  .bin :global(.n), .legend .n { color: var(--accent); }
+  .bin :global(.h), .legend .h { color: var(--warn); }
+  .bin :global(.dot) { color: var(--control); }
+  .legend { margin: 0.6rem 0 0; text-align: right; }
+  .legend .h { margin-left: 0.75rem; }
+
+  /* ---------- Subnets ---------- */
+  h2 { font-size: 1.375rem; font-weight: 700; margin: 2.5rem 0 1rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--rule); }
+  .split { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin-bottom: 1rem; }
+  .split label { font-size: 0.875rem; font-weight: 600; }
+  select {
+    padding: 0.3rem 0.5rem;
+    font: 500 0.95rem var(--font-mono);
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--rule-strong);
+    border-radius: var(--radius);
+  }
+  .subnets-wrap { max-height: 28rem; overflow: auto; border: 1px solid var(--rule); border-radius: var(--radius); }
+  .subnets { width: 100%; border-collapse: collapse; font: 0.875rem/1.5 var(--font-mono); }
+  .subnets th {
+    position: sticky;
+    top: 0;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-soft);
+    font: 600 0.75rem var(--font-body);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    text-align: left;
+  }
+  .subnets :global(td) { padding: 0.4rem 0.75rem; border-top: 1px solid var(--rule); white-space: nowrap; }
+  .subnets :global(td:first-child) { color: var(--muted); }
+  .subnets :global(tr:hover td) { background: var(--bg-soft); }
+  #subnets-more { margin-top: 0.5rem; }
+
+  @media (max-width: 40rem) {
+    .row { grid-template-columns: 6.5rem minmax(0, 1fr); gap: 0.1rem 0.75rem; }
+    .bin { grid-column: 2; font-size: 0.75rem; }
+  }
+  @media (max-width: 30rem) {
+    #ip { font-size: 1.2rem; }
+    .row { grid-template-columns: 1fr; }
+    .bin { grid-column: 1; }
+    .stats dd { font-size: 1.1rem; }
+  }
+</style>
