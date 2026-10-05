@@ -1,0 +1,163 @@
+---
+ref: T1.0
+title: "Repàs d'adreçament"
+description: "El mínim de xarxes que necessites tenir clar abans de començar el mòdul."
+---
+
+import Callout from "../../../components/Callout.astro";
+import Question from "../../../components/Question.astro";
+import Quiz from "../../../components/Quiz.astro";
+
+## Què sabràs fer en acabar
+
+- Diferenciar l'adreça MAC de l'adreça IP.
+- Interpretar una màscara escrita en format CIDR (`/24`).
+- Dir quina és l'adreça de xarxa, la de difusió i quantes en queden per als equips.
+- Reconèixer els rangs privats.
+
+## Dues adreces per a cada targeta
+
+Cada targeta de xarxa té **dues** adreces, i fan feines diferents:
+
+- **MAC** (`08:00:27:1f:a3:0c`) — identifica la targeta dins de la xarxa local. Normalment ve de fàbrica, però es pot canviar. En les nostres reserves DHCP la farem servir per identificar l’equip.
+- **IP** (`192.168.1.50`) — la poses tu o te la dona un servidor. Serveix per arribar a qualsevol lloc, també fora de la teva xarxa.
+
+La comparació habitual: la MAC és el número de sèrie del teu mòbil; la IP és el número de telèfon. El primer identifica la targeta; el segon depèn de la xarxa on et connectes.
+
+## La màscara parteix l'adreça en dos
+
+Una adreça IPv4 són quatre números de 0 a 255, i sempre va acompanyada d'una **màscara**. La màscara diu quina part de l'adreça identifica la **xarxa** i quina identifica l'**equip**.
+
+A `192.168.1.50/24`, el `/24` vol dir que els **24 primers bits** (els tres primers números) són la xarxa. Per tant: xarxa `192.168.1`, equip `50`.
+
+**Dos equips es poden parlar directament si comparteixen la part de xarxa.** Si no, el trànsit ha de passar per la porta d'enllaç. La **porta d’enllaç** és l’adreça de l’encaminador que envia els paquets cap a altres xarxes, com Internet. Per exemple, un PC `192.168.1.50/24` pot fer servir `192.168.1.1` com a sortida.
+
+## Les màscares que faràs servir
+
+| CIDR | Màscara | Adreces | Equips |
+|---|---|---|---|
+| `/24` | 255.255.255.0 | 256 | 254 |
+| `/20` | 255.255.240.0 | 4.096 | 4.094 |
+| `/16` | 255.255.0.0 | 65.536 | 65.534 |
+| `/8` | 255.0.0.0 | 16.777.216 | 16.777.214 |
+
+Per què sempre **dos equips menys** del total? Perquè de cada xarxa hi ha dues adreces que no es poden donar a ningú: la **primera** (adreça de xarxa) i l'**última** (difusió).
+
+## Les màscares no acaben sempre en un punt
+
+El `/24`, el `/16` i el `/8` són còmodes perquè cauen just entre dos números de l'adreça. Però la màscara pot ser **qualsevol valor entre /0 i /32**, i a la pràctica en trobaràs moltes que no són rodones, com la `/20` o la `/26`.
+
+Partir una xarxa gran en trossos més petits s'anomena **subnetting**, i serveix per separar aules o departaments sense malgastar adreces: donar una `/24` sencera a una aula de 20 ordinadors vol dir desaprofitar-ne 234.
+
+<Callout kind="nota">
+
+**En aquest mòdul** Farem servir `/24`, `/16` i `/8` per centrar-nos en els serveis. Només cal que sàpigues que les altres existeixen i que **qui mana és la màscara**, no el fet que un número acabi en 0 o en 255.
+
+</Callout>
+
+## Desglossar la xarxa 192.168.1.0/24
+
+| Adreça | Què és | Es pot fer servir? |
+|---|---|---|
+| `192.168.1.0` | Adreça de xarxa | No |
+| `192.168.1.1` | Primera assignable — sol ser la porta d'enllaç | Sí |
+| `192.168.1.2 – .254` | Equips | Sí |
+| `192.168.1.255` | Difusió (_broadcast_) | No |
+
+La **adreça de xarxa** identifica tota la subxarxa, no un equip: `192.168.1.0/24` és el nom d’aquest grup d’adreces.
+
+La **adreça de difusió** (_broadcast_) permet enviar un missatge a tots els equips de la subxarxa. Aquí és `192.168.1.255`. Cap de les dues s’assigna a un equip.
+
+## Adreces privades i públiques
+
+Hi ha tres rangs reservats per a xarxes internes. **No existeixen a Internet**: els pots fer servir a casa, a l'institut i a l'empresa sense demanar permís a ningú.
+
+| Rang | En CIDR | On el veuràs |
+|---|---|---|
+| 10.0.0.0 – 10.255.255.255 | `10.0.0.0/8` | Empreses grans |
+| 172.16.0.0 – 172.31.255.255 | `172.16.0.0/12` | Xarxes mitjanes |
+| 192.168.0.0 – 192.168.255.255 | `192.168.0.0/16` | Cases i oficines |
+
+Els faràs servir tots tres durant el mòdul. Com que no surten a Internet, cal un servidor que tradueixi les adreces quan els clients hi volen sortir: és el **NAT** de la teoria [T1.2](../../teoria/t1-2-encaminament-nat/).
+
+## Quantes adreces necessites
+
+Les activitats et demanaran rangs per a un nombre concret d'equips. El càlcul és una resta, però has de comptar bé: **els dos extrems del rang hi entren**.
+
+De la `.100` a la `.200` hi ha `200 − 100 + 1 = 101` adreces. Si en necessites exactament 99, el rang va de la `.100` a la `.198`.
+
+I recorda que tota xarxa té dues adreces que **mai** es reparteixen: la **primera** (adreça de xarxa) i l'**última** (difusió). Quines són depèn de la **màscara**, no de l'últim número:
+
+| Xarxa | Primera (xarxa) | Última (difusió) |
+|---|---|---|
+| `192.168.1.0/24` | `192.168.1.0` | `192.168.1.255` |
+| `172.16.0.0/16` | `172.16.0.0` | `172.16.255.255` |
+| `10.0.0.0/8` | `10.0.0.0` | `10.255.255.255` |
+
+Fixa-t'hi en la `10.0.0.0/8`: adreces com la `10.0.0.255` o la `10.0.1.0` **són perfectament vàlides** per a un equip. La del servidor tampoc es reparteix, i per això va fora del rang.
+
+## Llegir la teva pròpia xarxa
+
+Consulta la IP, la màscara i la MAC de les targetes:
+
+```bash title="Terminal"
+ip -c addr show
+```
+
+La MAC surt a `link/ether` i la IP amb el prefix a `inet`. Per veure la sortida cap a altres xarxes:
+
+```bash title="Terminal"
+ip -c route
+```
+
+A la línia `default via`, l’adreça després de `via` és la porta d’enllaç.
+
+## Confusions habituals
+
+### Dos equips no es veuen tot i tenir IP
+
+**Causa** Estan en xarxes diferents. Per exemple `192.168.1.5/24` i `192.168.2.5/24`: comparteixen els dos primers números, però amb `/24` en calen tres.
+
+**Solució** Compara la part de xarxa de tots dos segons la màscara, no a ull.
+
+### Assignar la primera o l'última adreça a un equip
+
+**Causa** Són la de xarxa i la de difusió. No es poden fer servir.
+
+**Solució** A la `192.168.1.0/24`, el primer equip és la `.1` i l'últim la `.254`.
+
+### La porta d'enllaç està fora de la xarxa
+
+**Causa** Un error de teclat, com posar `192.168.2.1` en una xarxa `192.168.1.0/24`.
+
+**Solució** La porta d'enllaç ha de ser sempre una adreça de la teva pròpia xarxa. Comprova-ho amb `ip route`.
+
+## Resum
+
+- La **MAC** ve de fàbrica i és local; la **IP** es configura i serveix arreu.
+- La **màscara** parteix l'adreça en part de xarxa i part d'equip.
+- De cada xarxa, la **primera** i l'**última** adreça no s'assignen.
+- Rangs privats: `10.0.0.0/8`, `172.16.0.0/12` i `192.168.0.0/16`.
+- La **porta d’enllaç** és l’encaminador que dona accés a altres xarxes.
+
+| Comanda | Per a què serveix |
+|---|---|
+| `ip -c addr show`<br />`ip -c a` | Veure la MAC i la IP amb la màscara |
+| `ip -c route`<br />`ip -c r` | Veure la porta d'enllaç |
+
+**Següent:** a _[T1.1](../../teoria/t1-1-dhcp-fonaments/) · Fonaments de DHCP_ veuràs qui reparteix aquestes adreces i com.
+
+## Comprova el que has après
+
+<Quiz>
+  <Question id="t1-0-cidr" type="single" statement="Quina màscara correspon a <code>/24</code>?" explanation="El prefix CIDR indica quants bits identifiquen la xarxa; els altres identifiquen els hosts." options={[["255.255.0.0", false], ["255.255.255.0", true], ["255.0.0.0", false], ["255.255.255.255", false]]} />
+  <Question id="t1-0-equips" type="single" statement="Quants equips es poden connectar a la xarxa <code>192.168.1.0/24</code>?" explanation="En una subxarxa IPv4 convencional cal descomptar les adreces de xarxa i difusió." options={[["256", false], ["255", false], ["254", true], ["253", false]]} />
+  <Question id="t1-0-difusio-mascara" type="single" statement="Quina és l'adreça de difusió de la xarxa <code>10.0.0.0/8</code>?" explanation="La màscara determina els límits: no es poden deduir només de l’últim octet." options={[["10.0.0.255", false], ["10.255.255.255", true], ["10.0.255.255", false], ["255.255.255.255", false]]} />
+  <Question id="t1-0-privada" type="single" statement="Quina d'aquestes adreces <em>no</em> és privada?" explanation="Una adreça privada es reutilitza en xarxes internes i no s’encamina globalment a Internet." options={[["10.5.4.3", false], ["172.16.0.10", false], ["192.168.30.1", false], ["9.9.9.9", true]]} />
+  <Question id="t1-0-mateixa-xarxa" type="single" statement="Els equips <code>192.168.1.10/24</code> i <code>192.168.2.10/24</code> es poden parlar directament?" explanation="Dos equips comparteixen subxarxa si l’adreça de xarxa calculada amb la màscara coincideix." options={[["Sí, comparteixen els dos primers números", false], ["No, amb <code>/24</code> la part de xarxa són els tres primers i no coincideix", true], ["Sí, perquè totes dues són privades", false], ["Només si tenen la mateixa MAC", false]]} />
+  <Question id="t1-0-certes" type="multi" statement="Selecciona totes les afirmacions certes" explanation="Adreça, màscara i ruta tenen funcions diferents: identificar l’equip, la subxarxa i la sortida." options={[["L'adreça MAC ve de fàbrica amb la targeta.", true], ["L'última adreça d'una xarxa és la de difusió i no s'assigna.", true], ["La porta d'enllaç ha d'estar dins de la mateixa xarxa que l'equip.", true], ["Les adreces privades es poden fer servir a Internet.", false], ["Una adreça IP funciona sense necessitat de màscara.", false]]} />
+</Quiz>
+
+## Al currículum
+
+**Contingut 1.1** Adreça IP, màscara de xarxa, porta d'enllaç.

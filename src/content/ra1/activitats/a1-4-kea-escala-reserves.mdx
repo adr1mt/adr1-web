@@ -1,0 +1,52 @@
+---
+ref: A1.4
+title: "DHCP per a una empresa de 2000 equips"
+description: "Dimensionar una xarxa gran i reservar les adreces dels servidors i les impressores."
+---
+
+## Amb què treballaràs
+
+| Màquina | Targetes | Paper |
+|---|---|---|
+| Ubuntu **Server** | puigcastellar1 + personal1 | Servidor DHCP i porta d'enllaç |
+| Ubuntu **Desktop** | només personal1 | Client |
+
+**Màquina nova** a isardVDI. La xarxa interna d'aquesta activitat no és la de sempre: aquí la subxarxa és la `172.16.0.0/16`.
+
+## Què has de fer
+
+Una empresa té **2000 PC** a `172.16.0.0/16`. Consulta [G1.2](../../guies/g1-2-kea/) i [G1.3](../../guies/g1-3-nftables/) per configurar el servei.
+
+1. Dissenya abans de configurar: IP del servidor, rang per als 2000 PC amb marge i reserves. Justifica la mida i per què una `/24` no seria suficient.
+2. Mantén `puigcastellar1` per DHCP i configura la interna amb la IP del servidor i prefix `/16`.
+3. Configura Kea només a `personal1`, amb el rang dissenyat, DNS `9.9.9.9` i el propi servidor com a porta d’enllaç.
+4. Inclou les quatre reserves de la taula, fora del rang automàtic.
+5. Configura encaminament i NAT, i comprova Internet i resolució de noms des del client.
+6. Demostra una reserva amb el client disponible: no disposes dels quatre equips. Explica com has fet la prova i mostra la concessió al registre.
+
+| Equip | MAC | IP reservada |
+|---|---|---|
+| Servidor de fitxers | `00:1a:2b:3c:4d:5e` | `172.16.10.10` |
+| Servidor web | `00:1a:2b:3c:4d:5f` | `172.16.10.11` |
+| Impressora 1 | `00:1a:2b:3c:4d:60` | `172.16.20.50` |
+| Impressora 2 | `00:1a:2b:3c:4d:61` | `172.16.20.51` |
+
+Amb `/16`, la xarxa és `172.16.0.0` i la difusió, `172.16.255.255`. Adreces com `172.16.100.0` són vàlides per a equips.
+
+## Què has d’entregar
+
+Entrega un document breu amb el disseny justificat i evidències de:
+
+- Configuració de la xarxa i de Kea, rang amb marge i quatre reserves validades.
+- IP dinàmica rebuda pel client, accés a Internet i resolució de noms.
+- Reserva provada amb el client, MAC utilitzada i concessió al registre.
+
+Explica per què has triat aquest rang i per què separes les reserves del _pool_, tot i que Kea també les admet dins.
+
+## Al currículum
+
+**CA 1.5** Prepara el servei per assignar la configuració bàsica als sistemes d'una xarxa local.
+
+**CA 1.6** Realitza assignacions dinàmiques i estàtiques.
+
+**CA 1.7** Integra en el servei opcions addicionals de configuració.

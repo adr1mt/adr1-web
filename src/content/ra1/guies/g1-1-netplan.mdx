@@ -1,0 +1,213 @@
+---
+ref: G1.1
+title: "Guia: Netplan"
+description: "Configurar les targetes de xarxa d'un Ubuntu Server."
+---
+
+import Callout from "../../../components/Callout.astro";
+
+## Què hi ha en aquesta guia
+
+Documentació oficial: [netplan.readthedocs.io](https://netplan.readthedocs.io)
+
+- Punt de partida: Ubuntu Server amb dues targetes, `enp1s0` i `enp2s0`.
+- En aquest laboratori fem servir `networkd` a Ubuntu Server.
+- Treballem per **SSH des de la màquina amfitriona fins a la VM**, per poder copiar i enganxar les ordres i la configuració.
+
+## Netplan: on s'escriu la configuració
+
+A Ubuntu Server la xarxa es configura amb **Netplan**. Tu escrius un fitxer **YAML** a `/etc/netplan/` i Netplan tradueix aquestes instruccions al programa que realment gestiona la xarxa, que a Ubuntu Server és **systemd-networkd**.
+
+És a dir: Netplan no és qui gestiona la xarxa, és qui _dona les ordres_. Aquesta és la línia `renderer:` del fitxer — `networkd` als servidors, `NetworkManager` als escriptoris.
+
+Els fitxers es llegeixen per ordre alfabètic, per això se'ls posa un número al davant: `90-xarxa.yaml`. El nom concret és igual, però l'extensió ha de ser `.yaml`.
+
+## Configuració completa per copiar i adaptar
+
+`enp1s0` per DHCP i `enp2s0` amb IP fixa. És exactament l'escenari de partida d’[A1.1](../../activitats/a1-1-posada-a-punt/). Copia el fitxer complet i adapta els noms si cal. **Comprova les interfícies reals i el Netplan existent de la teva VM**: `enp1s0` i `enp2s0` són els noms habituals a IsardVDI, però poden canviar:
+
+```yaml title="Fitxer YAML · Netplan"
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp1s0:                        # puigcastellar1 — automàtica
+      dhcp4: true
+
+    enp2s0:                        # personal1 — fixa
+      dhcp4: false
+      addresses:
+        - 192.168.1.1/24
+      nameservers:
+        addresses: [9.9.9.9]
+```
+
+Tres coses del YAML que has de vigilar: la **indentació és amb espais** (mai tabuladors), cada nivell són **2 espais** més, i els dos punts van **enganxats** a la paraula.
+
+## Si a /etc/netplan/ ja hi ha un fitxer, què passa amb el teu?
+
+El nom del que hi trobis depèn de la instal·lació: `00-installer-config.yaml` el deixa l'instal·lador d'Ubuntu Server, `01-network-manager-all.yaml` l'escriptori i `50-cloud-init.yaml` les màquines de núvol.
+
+Netplan els llegeix **tots** per ordre alfabètic i els **fusiona**. El que és nou se suma; si dos diuen coses diferents de la mateixa clau, mana el que va **després**. Les llistes, com `addresses`, no se substitueixen: s'acumulen, i la targeta acaba amb totes dues adreces.
+
+Per això val més afegir un fitxer propi amb un número alt, `90-xarxa.yaml`, que editar el que hi havia: el teu mana i l'original queda intacte. Mira com ha quedat la barreja amb `sudo netplan get`.
+
+## La porta d'enllaç va en un sol lloc
+
+En aquesta topologia volem **una sortida preferent**: el DHCP de la targeta externa aporta la ruta per defecte. No en posem cap a personal1. Un equip pot tenir diverses rutes per defecte amb mètriques o taules diferents; això requereix un disseny explícit.
+
+Si en algun cas l'has d'escriure a mà, la sintaxi actual és aquesta:
+
+```yaml title="Fitxer YAML · Netplan"
+      routes:
+        - to: default
+          via: 192.168.1.254
+```
+
+La forma antiga `gateway4:` encara la trobaràs a molta documentació d'Internet, però està obsoleta i Netplan t'avisarà. Fes servir sempre `routes:`.
+
+## Canviar la xarxa en remot és arriscat
+
+<Callout kind="recordatori">
+
+Si configures la xarxa per SSH, un error et pot tallar la connexió i deixar-te fora sense manera de tornar a entrar. Fes servir sempre `sudo netplan try`: aplica els canvis temporalment i, si en 120 segons no confirmes prement Enter, els desfà sols i et retorna la connexió.
+
+</Callout>
+
+## Què hi ha sota Netplan
+
+Netplan no fa la feina: la reparteix. Quan executes `netplan apply`, genera fitxers `.network` dins de `/run/systemd/network/` i qui els llegeix és **systemd-networkd**.
+
+Pots veure'ls tu mateix, i entendràs molt millor què fa cada línia del teu YAML:
+
+```bash title="Terminal"
+ls /run/systemd/network/
+sudo cat /run/systemd/network/*enp2s0*
+```
+
+Això importa perquè **Netplan no ho sap fer tot**. Muntar un servidor DHCP, per exemple, no està entre les seves opcions. En aquests casos s'aparta Netplan i s'escriuen els `.network` directament — és el que faràs a l'activitat 2.
+
+## Configurar les dues targetes
+
+1. **Mira quines targetes tens** i com es diuen:
+
+   ```bash title="Terminal"
+   ip -c link show
+   ```
+
+   A IsardVDI, la primera sol ser `enp1s0` (_puigcastellar1_) i la segona `enp2s0` (_personal1_). No ho donis per fet: comprova-ho.
+
+2. **Edita el fitxer** de Netplan:
+
+   ```bash title="Terminal"
+   sudo nano /etc/netplan/90-xarxa.yaml
+   ```
+
+   Enganxa la configuració completa de l’exemple. L’externa es manté per DHCP; només assignes manualment la IP interna. A [A1.2](../../activitats/a1-2-dhcp-systemd-networkd/) i [A1.3](../../activitats/a1-3-dhcp-kea/) la interna serà `10.0.0.1/8`; a [A1.4](../../activitats/a1-4-kea-escala-reserves/), una IP de `172.16.0.0/16`.
+
+3. **Posa-hi els permisos correctes.** Si no ho fas, Netplan et renyarà cada vegada:
+
+   ```bash title="Terminal"
+   sudo chmod 600 /etc/netplan/90-xarxa.yaml
+   ```
+
+4. **Comprova la sintaxi i aplica** amb la xarxa de seguretat:
+
+   ```bash title="Terminal"
+   sudo netplan try
+   ```
+
+   Si hi ha un error de sintaxi, t'ho dirà i no aplicarà res. Si tot va bé, prem Enter per confirmar.
+
+5. **Comprova el resultat** amb les tres comandes de sempre:
+
+   ```bash title="Terminal"
+   ip -c addr show
+   ip -c route
+   resolvectl status
+   ```
+
+   `enp1s0` ha de tenir una adreça del centre; `enp2s0`, la `192.168.1.1/24`; i ha d'haver-hi una sola ruta `default`, la de `enp1s0`.
+
+## Comprovar que la xarxa ha quedat com volies
+
+Tres ordres, i cadascuna respon una pregunta diferent.
+
+1. **El fitxer diu el que et penses.**
+
+   ```bash title="Terminal"
+   sudo netplan get
+   ```
+
+   Torna la configuració ja interpretada: si t'has equivocat d'indentació, aquí veuràs una cosa diferent del que has escrit.
+
+2. **Les targetes tenen l'adreça que toca.**
+
+   ```bash title="Terminal"
+   ip -brief a
+   ```
+
+   La interna, amb la IP fixa que li has posat. L'externa, amb la seva.
+
+3. **Hi ha una sola ruta per defecte**, i surt per la targeta externa:
+
+   ```bash title="Terminal"
+   ip route
+   ```
+
+## Criteris professionals
+
+<Callout kind="bones pràctiques">
+
+- **Un sol fitxer** de Netplan per màquina, amb totes les targetes. Diversos fitxers es trepitgen entre ells.
+- **`netplan try`, mai `netplan apply`**, quan treballis per SSH.
+- **Permisos 600.** El fitxer pot contenir claus de Wi-Fi.
+- **Còpia de seguretat** abans de tocar-lo: `sudo cp 90-xarxa.yaml 90-xarxa.yaml.bak`.
+- **Documenta amb comentaris** (`#`) quina targeta és quina. D'aquí a tres mesos no te'n recordaràs.
+
+</Callout>
+
+## Errors habituals
+
+### Error de sintaxi en aplicar
+
+**Causa** Gairebé sempre, indentació. Un tabulador enganxat en copiar i enganxar, o un nivell mal alineat.
+
+**Solució** `sudo netplan get` et mostra com ha entès Netplan el fitxer. Si la sortida no és la que esperaves, ja saps on mirar.
+
+### La targeta no agafa la IP fixa
+
+**Causa** La interfície pot tenir DHCP activat i una adreça estàtica alhora, o acumular adreces de diversos fitxers. DHCP no substitueix necessàriament l’adreça fixa. Revisa la configuració fusionada i el gestor de la interfície.
+
+**Solució** Revisa els noms i les adreces a `sudo netplan get` i corregeix el fitxer abans de tornar a aplicar. Comprova-ho amb `networkctl status enp2s0`.
+
+### `netplan apply` diu `'netplan try' is restoring configuration`
+
+**Causa** Un `netplan try` anterior es va quedar a mitges: vas tancar la consola sense prémer Enter ni esperar els 120 segons.
+
+**Solució** `sudo rm /run/netplan/netplan-try.ready` i torna a aplicar.
+
+### Es perd la connexió SSH en aplicar
+
+**Causa** Has canviat la configuració de la targeta per on estaves connectat.
+
+**Solució** Si has fet servir `netplan try`, espera 120 segons i tornaràs a entrar. Si has fet `apply`, hauràs d'anar a la consola de la VM a IsardVDI.
+
+## Resum
+
+- Configuració **fixa** per a servidors i impressores; **automàtica** per a la resta.
+- Netplan escriu a `/etc/netplan/*.yaml`; qui gestiona la xarxa és **systemd-networkd**.
+- Indentació amb **espais**, mai tabuladors.
+- En aquesta topologia hi ha **una sortida preferent** per la interfície externa.
+- Per SSH, sempre `netplan try`.
+
+| Comanda | Per a què serveix |
+|---|---|
+| `ip -c link show`<br />`ip -c l` | Veure les targetes i els seus noms |
+| `netplan try` | Aplicar amb reversió automàtica |
+| `netplan apply` | Aplicar directament (només a consola) |
+| `sudo netplan get` | Veure com s'ha interpretat el fitxer |
+| `netplan status` | Estat general de la xarxa |
+| `networkctl status <if>` | Detall d'una targeta |
+
+**Continua:** amb la _[G1.2](../../guies/g1-2-kea/) · Kea_ muntaràs el servidor que respon quan una targeta té `dhcp4: true`.

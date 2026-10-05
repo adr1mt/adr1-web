@@ -1,0 +1,72 @@
+---
+// Self-check questions at the end of theory pages. Nothing is stored or sent:
+// the answer is checked in the browser and can be retried.
+---
+
+<div class="quiz" data-pagefind-ignore="all">
+  <slot />
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('.question').forEach((q) => {
+    const multi = q.dataset.type === 'multi';
+    const options = [...q.querySelectorAll<HTMLButtonElement>('.option')];
+    const check = q.querySelector<HTMLButtonElement>('.check')!;
+    const retry = q.querySelector<HTMLButtonElement>('.retry')!;
+    const feedback = q.querySelector<HTMLElement>('.feedback')!;
+    const selected = (o: HTMLButtonElement) => o.getAttribute('aria-pressed') === 'true';
+
+    q.querySelectorAll<HTMLButtonElement>('button').forEach((b) => (b.disabled = false));
+    retry.disabled = false;
+
+    options.forEach((o) =>
+      o.addEventListener('click', () => {
+        if (!multi) options.forEach((x) => x.setAttribute('aria-pressed', 'false'));
+        o.setAttribute('aria-pressed', String(multi ? !selected(o) : true));
+      }),
+    );
+
+    check.addEventListener('click', () => {
+      if (!options.some(selected)) {
+        feedback.className = 'feedback';
+        feedback.textContent = 'Tria almenys una resposta abans de comprovar.';
+        return;
+      }
+      let allRight = true;
+      const answers: string[] = [];
+      options.forEach((o) => {
+        const correct = o.dataset.correct === 'true';
+        if (correct) answers.push(o.textContent!.trim());
+        if (correct !== selected(o)) allRight = false;
+        o.dataset.result = correct ? 'correct' : selected(o) ? 'wrong' : '';
+        const mark = document.createElement('span');
+        mark.className = 'mark';
+        mark.textContent = correct ? ' — correcta' : selected(o) ? ' — incorrecta' : '';
+        o.append(mark);
+        o.disabled = true;
+      });
+      feedback.className = `feedback ${allRight ? 'ok' : 'ko'}`;
+      feedback.textContent = `${allRight ? 'Correcte.' : 'Incorrecte.'} Resposta: ${answers.join('; ')}. ${q.dataset.explanation ?? ''}`;
+      check.hidden = true;
+      retry.hidden = false;
+    });
+
+    retry.addEventListener('click', () => {
+      options.forEach((o) => {
+        o.disabled = false;
+        o.setAttribute('aria-pressed', 'false');
+        delete o.dataset.result;
+        o.querySelector('.mark')?.remove();
+      });
+      feedback.className = 'feedback';
+      feedback.textContent = '';
+      retry.hidden = true;
+      check.hidden = false;
+      options[0].focus();
+    });
+  });
+</script>
+
+<style>
+  .quiz { display: flex; flex-direction: column; gap: 1.25rem; margin: 1rem 0; }
+</style>

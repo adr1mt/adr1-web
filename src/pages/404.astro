@@ -1,0 +1,16 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { href } from '../lib/site';
+---
+
+<BaseLayout title="Pàgina no trobada">
+  <main id="contingut" class="nf" tabindex="-1">
+    <p class="eyebrow">Error 404</p>
+    <h1 class="page-title">Aquesta pàgina no existeix</h1>
+    <p>Potser l’adreça ha canviat. Torna a l’<a href={href('/')}>inici</a>, obre el <a href={href('/ra1/')}>RA1</a> o fes servir la cerca.</p>
+  </main>
+</BaseLayout>
+
+<style>
+  .nf { max-width: var(--measure); margin: 0 auto; padding: 4rem var(--gutter) 0; }
+</style>

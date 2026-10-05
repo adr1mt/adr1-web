@@ -1,0 +1,30 @@
+---
+import MicroblogLayout from '../../../layouts/MicroblogLayout.astro';
+import Micropost from '../../../components/Micropost.astro';
+import { getMicroposts, tagSlug, href, type Micropost as Post } from '../../../lib/site';
+
+export async function getStaticPaths() {
+  const posts = await getMicroposts();
+  const byTag = new Map<string, { name: string; posts: Post[] }>();
+  for (const post of posts) {
+    for (const name of post.data.tags) {
+      const slug = tagSlug(name);
+      if (!byTag.has(slug)) byTag.set(slug, { name, posts: [] });
+      byTag.get(slug)!.posts.push(post);
+    }
+  }
+  return [...byTag].map(([tag, { name, posts }]) => ({ params: { tag }, props: { name, posts } }));
+}
+
+const { tag } = Astro.params;
+const { name, posts } = Astro.props;
+---
+
+<MicroblogLayout title={`#${name} · Microblog`} currentTag={tag}>
+  <header class="intro">
+    <p class="eyebrow"><a href={href('/microblog/')}>Microblog</a></p>
+    <h1 class="page-title">#{name}</h1>
+    <p class="lede">{posts.length} {posts.length === 1 ? 'entrada' : 'entrades'} amb aquesta etiqueta.</p>
+  </header>
+  {posts.map((post) => <Micropost post={post} />)}
+</MicroblogLayout>

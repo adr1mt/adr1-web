@@ -1,0 +1,125 @@
+---
+ref: T1.2
+title: "Encaminament i NAT"
+description: "Per què un client amb IP correcta encara no té Internet."
+---
+
+import Callout from "../../../components/Callout.astro";
+import Flow from "../../../components/Flow.astro";
+import Question from "../../../components/Question.astro";
+import Quiz from "../../../components/Quiz.astro";
+
+## Què sabràs fer en acabar
+
+- Explicar per què un client amb IP correcta encara no té Internet.
+- Activar l'encaminament de paquets de forma permanent.
+- Explicar què fa el **NAT** amb l'adreça d'origen d'un paquet.
+- Comprovar on falla la connexió quan no funciona.
+
+## Tinc IP, però no tinc Internet
+
+El client ha rebut la seva configuració per DHCP i la porta d'enllaç apunta al teu servidor. Fa `ping` a Internet i no passa res. DHCP ha funcionat perfectament: el que falla és el pas següent.
+
+Perquè aquell paquet arribi a Internet i torni, calen **dues coses**:
+
+- **Encaminament** — que el servidor accepti passar paquets d'una targeta a l'altra.
+- **NAT** — que canviï l'adreça d'origen per la seva, perquè la resposta sàpiga tornar.
+
+Cap de les dues està activada per defecte a Linux. Les has d'activar tu.
+
+## Encaminament: deixar passar els paquets
+
+Un Linux amb dues targetes de xarxa **no reenvia res** entre elles. Per seguretat, ve desactivat de fàbrica: si no ho actives, cada targeta viu la seva vida.
+
+L'interruptor és un únic valor del nucli, que pots consultar així:
+
+```bash title="Terminal"
+cat /proc/sys/net/ipv4/ip_forward
+```
+
+Si respon `0`, està desactivat. Amb `1`, el servidor ja fa d'encaminador (_router_) entre les seves xarxes.
+
+## NAT: qui signa la carta
+
+Els clients tenen adreces privades, per exemple `192.168.1.50`. Aquestes adreces **no existeixen a Internet**: cap servidor de fora sabria com respondre-hi.
+
+**NAT** (_Network Address Translation_) ho resol canviant l'adreça d'origen del paquet per la del servidor abans d'enviar-lo, i apuntant-se qui l'havia demanat. Quan arriba la resposta, la torna al client correcte.
+
+És el mateix que fa el router de casa teva amb tots els mòbils i ordinadors: de portes enfora, tots surten amb una única adreça. La variant que farem servir s'anomena **_masquerade_**.
+
+IPv4 té un nombre limitat d’adreces. El **3 de febrer de 2011** es va esgotar el fons central de blocs lliures d’IANA. Les adreces existents continuen funcionant. NAT estalvia adreces públiques; IPv6 ofereix moltes més adreces. [Font: ICANN](https://www.icann.org/resources/press-material/release-2011-02-03-en).
+
+## L'escenari de les activitats
+
+| Targeta | Xarxa | Paper |
+|---|---|---|
+| `enp1s0` | puigcastellar1 | Sortida a Internet |
+| `enp2s0` | personal1 | Xarxa interna: DHCP i clients |
+
+El recorregut d'un paquet del client fins a Internet és aquest:
+
+<Flow steps={[{"n": "01", "t": "CLIENT", "d": "Envia el paquet a la seva porta d'enllaç: el servidor."}, {"n": "02", "t": "FORWARD", "d": "El servidor el passa de enp2s0 a enp1s0 ."}, {"n": "03", "t": "NAT", "d": "Canvia l'origen per l'adreça del servidor i el treu a fora."}]} />
+
+## Criteris professionals
+
+<Callout kind="bones pràctiques">
+
+- **Diagnostica per capes**, de dins cap a fora: ruta al client, el servidor, una IP d'Internet i, l'últim de tot, un nom.
+- **Encaminar i traduir són dues coses**: activar-ne una i oblidar l'altra és la fallada més freqüent d'aquest RA.
+- **Que sigui permanent**: el que només val fins al pròxim reinici no està fet.
+- **Una sola eina de filtratge** a la màquina, mai dues alhora.
+- **Obre només el que calgui**: una porta d'enllaç no ha de deixar entrar res de fora que no li hagin demanat.
+
+</Callout>
+
+## Errors habituals
+
+### El client té IP i porta d'enllaç, però no surt
+
+**Causa** Els paquets arriben al servidor i s'hi queden: no té l'encaminament activat.
+
+**Solució** Activa el reenviament de paquets i fes-lo permanent.
+
+### Surt del servidor però no torna res
+
+**Causa** Els paquets marxen amb l'adreça privada del client, i a Internet ningú no sap tornar-hi.
+
+**Solució** Falta la traducció d'adreces a la targeta externa.
+
+### Funciona per IP però no per nom
+
+**Causa** L'encaminament i la traducció van bé: el que falla és la resolució de noms.
+
+**Solució** Revisa quin servidor DNS ha rebut el client. Això és [RA2](https://adr1mt.github.io/m7-serveis-en-xarxa-web/RA2/).
+
+### Torna a fallar després de reiniciar
+
+**Causa** Els canvis s'han fet en calent i no s'han desat enlloc.
+
+**Solució** Escriu-los al fitxer que el sistema llegeix a l'arrencada i comprova-ho reiniciant.
+
+## Resum
+
+- Un client amb IP correcta encara necessita **encaminament** i **NAT** per sortir a Internet.
+- L'encaminament s'activa amb `net.ipv4.ip_forward=1`, permanent a `/etc/sysctl.d/`.
+- El NAT es fa amb `masquerade` a la targeta externa.
+- Es fa servir **nftables**, no `iptables`. I mai els dos alhora.
+- Per diagnosticar, prova **per capes**: ruta, servidor, IP externa, nom.
+
+**Amb això tanques el [RA1](../../):** ja saps configurar la xarxa, muntar un servidor DHCP i donar Internet als seus clients.
+
+## Comprova el que has après
+
+<Quiz>
+  <Question id="t1-2-forward" type="single" statement="Què significa que <code>/proc/sys/net/ipv4/ip_forward</code> valgui <code>0</code>?" explanation="ip_forward controla el reenviament IPv4; no diu si hi ha NAT o regles de filtratge." options={[["El servidor no passa paquets d'una targeta a l'altra", true], ["El servidor no té cap targeta de xarxa activa", false], ["El NAT està desactivat", false], ["No hi ha cap regla de tallafoc", false]]} />
+  <Question id="t1-2-nat" type="single" statement="Per a què serveix el NAT (<em>masquerade</em>)?" explanation="Masquerade modifica l’origen i manté l’estat necessari per retornar les respostes al client." options={[["Per repartir adreces IP als clients", false], ["Per canviar l'adreça privada d'origen per la del servidor, i que la resposta pugui tornar", true], ["Per resoldre noms de domini", false], ["Per xifrar el trànsit cap a Internet", false]]} />
+  <Question id="t1-2-permanent" type="single" statement="Abans de reiniciar, el reenviament i les regles NAT funcionaven, però només s’havien aplicat en memòria. Després del reinici ip_forward és 0 i no hi ha regles NAT. Què falta?" explanation="Els canvis en memòria es perden al reinici si no hi ha configuració persistent que els carregui." options={[["La concessió DHCP ha caducat", false], ["La configuració es va fer només per a la sessió i no s'ha desat en fitxers", true], ["El servidor ha canviat d'adreça MAC", false], ["S'ha esgotat el rang d'adreces", false]]} />
+  <Question id="t1-2-diagnostic" type="single" statement="Al client, ping 9.9.9.9 funciona, però ping www.upc.edu indica un error de resolució del nom. resolvectl mostra un servidor DNS incorrecte rebut per DHCP. Què cal revisar?" explanation="L’error explícit de resolució i el DNS incorrecte rebut per DHCP dirigeixen el diagnòstic cap a aquesta opció." options={[["L'encaminament", false], ["El NAT", false], ["El DNS que reparteix el servidor DHCP", true], ["La porta d'enllaç", false]]} />
+  <Question id="t1-2-certes" type="multi" statement="Selecciona totes les afirmacions certes" explanation="Encaminament, traducció d’adreces i resolució de noms són funcions independents." options={[["L'encaminament ve desactivat per defecte a Linux.", true], ["El <em>masquerade</em> s'aplica a la targeta que surt a Internet.", true], ["Les regles del tallafoc s'han de desar en un fitxer perquè sobrevisquin a un reinici.", true], ["Convé escriure les regles amb <code>iptables</code> i amb <code>nftables</code> alhora.", false], ["Amb el DHCP ben configurat, el client ja té Internet.", false]]} />
+</Quiz>
+
+## Al currículum
+
+**Contingut 8.3** Encaminament de trànsit entre interfícies de xarxa.
+
+**CA 8.8** Estableix un mecanisme que permeti reenviar trànsit entre dues o més interfícies d'un mateix sistema.

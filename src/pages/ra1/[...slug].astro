@@ -1,0 +1,49 @@
+---
+import { render } from 'astro:content';
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import Toc from '../../components/Toc.astro';
+import CodeBlock from '../../components/CodeBlock.astro';
+import { getRa1Pages, pageUrl, sectionOf, SECTIONS, href, type Ra1Page } from '../../lib/site';
+
+export async function getStaticPaths() {
+  const pages = await getRa1Pages();
+  return pages.map((page) => ({ params: { slug: page.id }, props: { page, pages } }));
+}
+
+interface Props { page: Ra1Page; pages: Ra1Page[] }
+const { page, pages } = Astro.props;
+const { Content, headings } = await render(page);
+
+// Previous / next follow the reading order of the sidebar.
+const i = pages.findIndex((p) => p.id === page.id);
+const link = (p?: Ra1Page) => p && { url: pageUrl(p), ref: p.data.ref, title: p.data.title };
+const prev = link(pages[i - 1]) ?? { url: href('/ra1/'), title: 'Índex del RA1' };
+const next = link(pages[i + 1]);
+
+const section = SECTIONS.find((s) => s.id === sectionOf(page))!;
+const breadcrumb = [
+  { label: 'Inici', url: href('/') },
+  { label: 'RA1', url: href('/ra1/') },
+  { label: section.label, url: `${href('/ra1/')}#${section.id}` },
+  { label: page.data.ref },
+];
+---
+
+<DocsLayout
+  title={`${page.data.ref} · ${page.data.title}`}
+  description={page.data.description}
+  pages={pages}
+  currentId={page.id}
+  breadcrumb={breadcrumb}
+  headings={headings}
+  prev={prev}
+  next={next}
+>
+  <header>
+    <p class="eyebrow">RA1 · {section.label} · {page.data.ref}</p>
+    <h1>{page.data.title}</h1>
+    <p class="lede">{page.data.description}</p>
+  </header>
+  <Toc headings={headings} variant="inline" />
+  <Content components={{ pre: CodeBlock }} />
+</DocsLayout>

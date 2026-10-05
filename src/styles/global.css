@@ -1,0 +1,195 @@
+/* Fonts: same files as the current M7 web (self-hosted, no external requests). */
+@font-face { font-family: "Source Sans 3"; font-weight: 400; font-display: swap; src: url("./fonts/source-sans-3-400.woff2") format("woff2"); }
+@font-face { font-family: "Source Sans 3"; font-weight: 600; font-display: swap; src: url("./fonts/source-sans-3-600.woff2") format("woff2"); }
+@font-face { font-family: "Ubuntu"; font-weight: 500; font-display: swap; src: url("./fonts/ubuntu-500.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url("./fonts/jetbrains-mono-400.woff2") format("woff2"); }
+
+/* ---------- Tokens ---------- */
+:root {
+  color-scheme: light;
+  --bg: #FBFCFD;
+  --bg-soft: #F2F5F8;
+  --ink: #18212B;
+  --muted: #5A6673;
+  --rule: #E1E7EE;
+  --rule-strong: #C9D3DE;
+  --accent: #1D4E89;
+  --accent-soft: #EAF1F9;
+  --warn: #B0420E;
+  --warn-soft: #FDF4EC;
+  --ok: #0E6E44;
+  --ok-soft: #EEF8F2;
+  --ko: #B4232B;
+  --ko-soft: #FDF2F2;
+  --code-bg: #F4F6F9;
+  --focus: #1D4E89;
+
+  --font-body: "Source Sans 3", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Ubuntu", var(--font-body);
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+
+  --header-h: 3.5rem;
+  --sidebar-w: 16rem;
+  --toc-w: 13.5rem;
+  --measure: 46rem;
+  --gutter: 1rem;
+  --radius: 6px;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #12181F;
+  --bg-soft: #19212A;
+  --ink: #DCE3EA;
+  --muted: #9BA8B6;
+  --rule: #26313D;
+  --rule-strong: #364452;
+  --accent: #8DB8EC;
+  --accent-soft: #1B2A3B;
+  --warn: #F2A574;
+  --warn-soft: #2A2019;
+  --ok: #86CFA6;
+  --ok-soft: #17271F;
+  --ko: #F3A3A8;
+  --ko-soft: #2C1C20;
+  --code-bg: #1A222C;
+  --focus: #8DB8EC;
+}
+
+/* Without JS the head script never runs: follow the system. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --bg: #12181F; --bg-soft: #19212A; --ink: #DCE3EA; --muted: #9BA8B6;
+    --rule: #26313D; --rule-strong: #364452; --accent: #8DB8EC; --accent-soft: #1B2A3B;
+    --warn: #F2A574; --warn-soft: #2A2019; --ok: #86CFA6; --ok-soft: #17271F;
+    --ko: #F3A3A8; --ko-soft: #2C1C20; --code-bg: #1A222C; --focus: #8DB8EC;
+  }
+}
+
+@media (min-width: 40rem) { :root { --gutter: 1.5rem; } }
+
+/* ---------- Base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--header-h) + 1rem);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 1.0625rem/1.65 var(--font-body);
+  text-rendering: optimizeLegibility;
+  overflow-wrap: break-word;
+}
+
+a { color: var(--accent); text-underline-offset: 0.18em; text-decoration-thickness: 1px; }
+a:hover { text-decoration-thickness: 2px; }
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+
+img, svg { max-width: 100%; height: auto; }
+
+button { font: inherit; color: inherit; }
+
+.visually-hidden {
+  position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.skip-link {
+  position: absolute; left: var(--gutter); top: -4rem; z-index: 100;
+  padding: 0.5rem 0.875rem; background: var(--bg); border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+}
+.skip-link:focus { top: 0.5rem; }
+
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+/* ---------- Prose (RA pages and microposts) ---------- */
+.prose { max-width: var(--measure); }
+.prose > :first-child { margin-top: 0; }
+
+.prose h1, .page-title {
+  font: 500 clamp(1.75rem, 1.4rem + 1.4vw, 2.25rem)/1.2 var(--font-display);
+  letter-spacing: -0.01em;
+  margin: 0 0 0.5rem;
+  text-wrap: balance;
+}
+
+.prose h2 {
+  font: 500 1.4rem/1.3 var(--font-display);
+  margin: 3rem 0 0.75rem;
+  text-wrap: balance;
+}
+.prose h3 {
+  font: 600 1.125rem/1.4 var(--font-body);
+  margin: 2rem 0 0.5rem;
+}
+.prose h4 { font: 600 1rem/1.4 var(--font-body); margin: 1.5rem 0 0.25rem; }
+
+.prose p, .prose ul, .prose ol, .prose table, .prose pre, .prose figure { margin: 0 0 1rem; }
+.prose ul, .prose ol { padding-left: 1.4rem; }
+.prose li { margin: 0.25rem 0; }
+.prose li > p { margin: 0 0 0.5rem; }
+.prose li::marker { color: var(--muted); }
+.prose strong { font-weight: 600; }
+
+.prose hr { border: 0; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
+
+.prose :not(pre) > code {
+  font: 0.875em var(--font-mono);
+  background: var(--bg-soft);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.05em 0.3em;
+  overflow-wrap: break-word;
+}
+
+/* Tables scroll inside themselves, never the page. */
+.prose table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+.prose th, .prose td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+.prose th { font-weight: 600; border-bottom-color: var(--rule-strong); white-space: nowrap; }
+.prose td:first-child, .prose th:first-child { padding-left: 0; }
+
+.lede { color: var(--muted); font-size: 1.1875rem; line-height: 1.5; margin: 0 0 2rem; max-width: 40rem; }
+
+.eyebrow {
+  font: 400 0.8125rem/1.4 var(--font-mono);
+  color: var(--muted);
+  margin: 0 0 0.75rem;
+}
+
+/* ---------- Code blocks (Shiki dual theme, see astro.config.mjs) ---------- */
+.astro-code {
+  font: 0.875rem/1.6 var(--font-mono);
+  background: var(--code-bg) !important;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 0.875rem 1rem;
+  overflow-x: auto;
+  tab-size: 2;
+}
+.astro-code, .astro-code span { color: var(--shiki-light); }
+[data-theme="dark"] .astro-code, [data-theme="dark"] .astro-code span { color: var(--shiki-dark); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .astro-code, :root:not([data-theme]) .astro-code span { color: var(--shiki-dark); }
+}
+.astro-code code { font: inherit; }

@@ -1,0 +1,28 @@
+---
+import MicroblogLayout from '../../layouts/MicroblogLayout.astro';
+import Micropost from '../../components/Micropost.astro';
+import PrevNext from '../../components/PrevNext.astro';
+import { getMicroposts, postUrl, href, type Micropost as Post } from '../../lib/site';
+
+export async function getStaticPaths() {
+  const posts = await getMicroposts();
+  return posts.map((post, i) => ({
+    params: { id: post.id },
+    props: { post, newer: posts[i - 1], older: posts[i + 1] },
+  }));
+}
+
+interface Props { post: Post; newer?: Post; older?: Post }
+const { post, newer, older } = Astro.props;
+const link = (p?: Post) => p && { url: postUrl(p), title: p.data.title };
+---
+
+<MicroblogLayout title={post.data.title} searchable>
+  <p class="back"><a href={href('/microblog/')}>← Microblog</a></p>
+  <Micropost post={post} single />
+  <PrevNext prev={link(older)} next={link(newer)} />
+</MicroblogLayout>
+
+<style>
+  .back { margin: 0 0 1.5rem; font-size: 0.9375rem; }
+</style>

@@ -1,0 +1,26 @@
+---
+// Marks a passage the student should not miss. The tone comes from `kind`;
+// the section heading stays outside, so it is still part of the TOC.
+interface Props {
+  kind: 'recordatori' | 'bones pràctiques' | 'nota';
+}
+const { kind } = Astro.props;
+const tone = { recordatori: 'warn', 'bones pràctiques': 'ok', nota: 'info' }[kind];
+---
+
+<aside class:list={['callout', tone]} aria-label={kind[0].toUpperCase() + kind.slice(1)}>
+  <slot />
+</aside>
+
+<style>
+  .callout {
+    margin: 0 0 1.25rem;
+    padding: 0.875rem 1.125rem;
+    border-left: 3px solid;
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+  .callout > :global(:last-child) { margin-bottom: 0; }
+  .warn { border-color: var(--warn); background: var(--warn-soft); }
+  .ok { border-color: var(--ok); background: var(--ok-soft); }
+  .info { border-color: var(--accent); background: var(--accent-soft); }
+</style>

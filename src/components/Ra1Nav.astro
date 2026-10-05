@@ -1,0 +1,65 @@
+---
+import { SECTIONS, sectionOf, pageUrl, href, type Ra1Page } from '../lib/site';
+
+interface Props {
+  pages: Ra1Page[];
+  currentId?: string;
+}
+const { pages, currentId } = Astro.props;
+---
+
+<nav class="ra1-nav" aria-label="Pàgines del RA1">
+  <a class="ra1-home" href={href('/ra1/')} aria-current={currentId ? undefined : 'page'}>
+    RA1 · DHCP
+  </a>
+  {SECTIONS.map((section) => (
+    <div class="group">
+      <p class="group-title">{section.label}</p>
+      <ul>
+        {pages.filter((p) => sectionOf(p) === section.id).map((p) => (
+          <li>
+            <a href={pageUrl(p)} aria-current={p.id === currentId ? 'page' : undefined}>
+              <span class="ref">{p.data.ref}</span>
+              <span>{p.data.title}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ))}
+</nav>
+
+<style>
+  .ra1-nav { font-size: 0.9375rem; line-height: 1.35; }
+  .ra1-home {
+    display: block;
+    font: 500 1rem/1.3 var(--font-display);
+    color: var(--ink);
+    text-decoration: none;
+    padding: 0.375rem 0.625rem;
+    margin-bottom: 0.75rem;
+  }
+  .group { margin-bottom: 1.25rem; }
+  .group-title {
+    margin: 0 0 0.25rem;
+    padding: 0 0.625rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li a {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr;
+    gap: 0.25rem;
+    padding: 0.4375rem 0.625rem;
+    border-radius: var(--radius);
+    color: var(--ink);
+    text-decoration: none;
+  }
+  li a:hover { background: var(--bg-soft); }
+  .ref { font: 0.8125rem/1.6 var(--font-mono); color: var(--muted); }
+  li a[aria-current='page'] { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  li a[aria-current='page'] .ref { color: var(--accent); }
+  .ra1-home[aria-current='page'] { color: var(--accent); }
+</style>

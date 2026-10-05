@@ -1,0 +1,96 @@
+---
+ref: G1.4
+title: "Guia: DHCP amb systemd-networkd"
+description: "Un servidor mínim per al laboratori d’A1.2."
+---
+
+## Abans de canviar la xarxa
+
+Parteix del Server preparat a [A1.1](../../activitats/a1-1-posada-a-punt/). Treballa per SSH des de l’amfitrió i conserva accés a la consola d’Isard si es talla la connexió. Aquest exemple gestiona les targetes directament amb networkd, en lloc de Netplan. No hi ha d’haver cap altre servidor DHCP actiu.
+
+Comprova els noms de les targetes i el YAML existent. A Isard solen ser `enp1s0` (externa) i `enp2s0` (interna); adapta’ls si són diferents.
+
+```bash title="Terminal"
+ip -brief a
+sudo cat /etc/netplan/*.yaml
+```
+
+Consulta `man systemd.network` i la [documentació oficial de networkd](https://www.freedesktop.org/software/systemd/man/latest/systemd.network.html).
+
+## Prepara els dos fitxers
+
+Crea `/etc/systemd/network` si cal:
+
+```bash title="Terminal"
+sudo mkdir -p /etc/systemd/network
+sudo nano /etc/systemd/network/10-externa.network
+```
+
+Copia la configuració externa. Continua rebent la IP del centre per DHCP:
+
+```ini title="Fitxer · systemd-networkd"
+[Match]
+Name=enp1s0
+
+[Network]
+DHCP=ipv4
+```
+
+Edita el fitxer de la interna:
+
+```bash title="Terminal"
+sudo nano /etc/systemd/network/20-personal.network
+```
+
+Copia el bloc complet. Només aquesta targeta oferirà DHCP:
+
+```ini title="Fitxer · systemd-networkd"
+[Match]
+Name=enp2s0
+
+[Network]
+Address=10.0.0.1/8
+DHCPServer=yes
+
+[DHCPServer]
+PoolOffset=100
+PoolSize=20
+DNS=9.9.9.9
+EmitRouter=no
+```
+
+- `Name`: nom real de la targeta a la qual s’aplica el fitxer.
+- `Address`: IP fixa i prefix del servidor a `personal1`.
+- `DHCPServer=yes`: activa el servidor DHCP en aquesta interfície.
+- `PoolOffset=100`: el rang comença 100 adreces després de `10.0.0.0`, a `10.0.0.100`.
+- `PoolSize=20`: reparteix de `10.0.0.100` a `10.0.0.119`.
+- `DNS`: servidor DNS que s’ofereix als clients.
+- `EmitRouter=no`: no anuncia porta d’enllaç; aquesta pràctica encara no dona sortida a Internet.
+
+## Aparta Netplan i aplica el canvi
+
+Amb els dos fitxers preparats, desa els YAML en una subcarpeta. Netplan deixarà de generar la configuració anterior:
+
+```bash title="Terminal"
+sudo mkdir -p /etc/netplan/apartat-ra1
+sudo mv /etc/netplan/*.yaml /etc/netplan/apartat-ra1/
+sudo netplan apply
+sudo networkctl reload
+sudo networkctl reconfigure enp1s0 enp2s0
+```
+
+Si es talla SSH, continua des de la consola. `reload` rellegeix els fitxers i `reconfigure` aplica la configuració a les targetes indicades.
+
+Per recuperar Netplan, retira els dos fitxers `.network` de l’exemple, torna els YAML a `/etc/netplan/` i aplica’ls des de la consola.
+
+## Comprova servidor i client
+
+```bash title="Terminal"
+networkctl status enp2s0
+sudo ss -ulnp
+sudo journalctl -u systemd-networkd -n 30 --no-pager
+```
+
+Comprova la IP `10.0.0.1/8`, el fitxer `20-personal.network` i el port UDP 67. El client connectat a `personal1` ha de rebre una IP del rang, el DNS i arribar al servidor.
+
+Per capturar DORA, inicia la captura DHCP abans de connectar un client sense concessió. Una renovació pot mostrar només Request/ACK. Alguns clients negocien _Rapid Commit_ (dos missatges); per observar els quatre, desactiva aquesta opció al client. Al Desktop comprova si el gestor és NetworkManager; `networkctl` correspon a networkd.
