@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-// Creates a new micropost: npm run new:micro
+// Creates a new blog post: npm run new:post
 import { createInterface } from 'node:readline';
 import { existsSync, writeFileSync } from 'node:fs';
 import { stdin, stdout, exit } from 'node:process';
 
-const DIR = new URL('../src/content/microblog/', import.meta.url);
+const DIR = new URL('../src/content/blog/', import.meta.url);
 const rl = createInterface({ input: stdin, output: stdout });
 // Reading lines through the iterator also works when the answers are piped in.
 const lines = rl[Symbol.asyncIterator]();
@@ -28,7 +28,7 @@ rl.close();
 const slug = title.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
   .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60).replace(/-$/, '') || 'entrada';
 const file = new URL(`${date}-${slug}.md`, DIR);
-if (existsSync(file)) { console.error(`Ja existeix: src/content/microblog/${date}-${slug}.md`); exit(1); }
+if (existsSync(file)) { console.error(`Ja existeix: src/content/blog/${date}-${slug}.md`); exit(1); }
 
 const yaml = (s) => JSON.stringify(s); // a JSON string is valid YAML and escapes quotes
 writeFileSync(file, `---
@@ -40,4 +40,4 @@ tags: [${tags.map(yaml).join(', ')}]
 Escriu aquí la recomanació.
 `, { flag: 'wx' });
 
-console.log(`Creat: src/content/microblog/${date}-${slug}.md`);
+console.log(`Creat: src/content/blog/${date}-${slug}.md`);

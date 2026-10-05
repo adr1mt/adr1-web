@@ -1,0 +1,63 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { getPosts, tagUrl, tagSlug, href } from '../lib/site';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Tag slug currently filtered, if any. */
+  currentTag?: string;
+  /** Only permalinks go into the search index, so lists do not duplicate results. */
+  searchable?: boolean;
+  /** Lists show the tag filter; the permalink does not need it. */
+  showTags?: boolean;
+}
+const { title, description, currentTag, searchable = false, showTags = true } = Astro.props;
+
+const counts = new Map<string, number>();
+for (const p of await getPosts()) for (const t of p.data.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
+const tags = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'ca'));
+---
+
+<BaseLayout title={title} description={description} current="blog">
+  <main id="contingut" class="blog" tabindex="-1" data-pagefind-body={searchable ? '' : undefined}>
+    <slot name="intro" />
+    {showTags && tags.length > 0 && (
+      <nav class="tag-filter" aria-label="Etiquetes" data-pagefind-ignore="all">
+        <a href={href('/blog/')} aria-current={currentTag ? undefined : 'page'}>Totes</a>
+        {tags.map(([t, n]) => (
+          <a href={tagUrl(t)} aria-current={currentTag === tagSlug(t) ? 'page' : undefined}>{t} ({n})</a>
+        ))}
+      </nav>
+    )}
+    <div class="posts">
+      <slot />
+    </div>
+    <slot name="after" />
+  </main>
+</BaseLayout>
+
+<style>
+  .blog { max-width: calc(var(--measure) + 4rem); margin: 0 auto; padding: 2.5rem var(--gutter) 0; }
+  .blog:focus { outline: none; }
+  .tag-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .tag-filter a {
+    padding: 0.2rem 0.6rem;
+    border-radius: 1rem;
+    background: var(--bg-soft);
+    color: var(--muted);
+    font-size: 0.75rem;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .tag-filter a:hover { background: var(--accent-soft); color: var(--accent); }
+  .tag-filter a[aria-current='page'] { background: var(--accent); color: var(--bg); }
+  .posts { display: grid; gap: 1.25rem; }
+</style>

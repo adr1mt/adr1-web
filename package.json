@@ -7,11 +7,10 @@
     "build": "astro build && pagefind --site dist",
     "preview": "astro preview",
     "check": "astro check",
-    "new:micro": "node scripts/new-micro.mjs"
+    "new:post": "node scripts/new-post.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^8.0.2",
-    "@astrojs/rss": "^4.0.19",
     "astro": "^7.3.5",
     "pagefind": "^1.5.2"
   },

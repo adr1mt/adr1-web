@@ -11,9 +11,9 @@ const ref = (r: string) => pageUrl(pages.find((p) => p.data.ref === r)!);
   title="RA1 · Servei DHCP"
   description="Adreçament, DHCP, encaminament i NAT."
   pages={pages}
-  breadcrumb={[{ label: 'M7', url: href('/') }, { label: 'RA1 · Servei DHCP' }]}
+  breadcrumb={[{ label: 'Serveis en Xarxa', url: href('/serveis-en-xarxa/') }, { label: 'RA1 · Servei DHCP' }]}
   headings={SECTIONS.map((s) => ({ depth: 2, slug: s.id, text: s.label }))}
-  prev={{ url: href('/'), title: 'Inici' }}
+  prev={{ url: href('/serveis-en-xarxa/'), title: 'Serveis en Xarxa' }}
   next={{ url: pageUrl(first), ref: first.data.ref, title: first.data.title }}
 >
   <h1>RA1 · Instal·lació de serveis de configuració dinàmica (DHCP)</h1>
