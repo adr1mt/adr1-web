@@ -1,69 +1,74 @@
-/* Fonts: same files as the current M7 web (self-hosted, no external requests). */
-@font-face { font-family: "Source Sans 3"; font-weight: 400; font-display: swap; src: url("./fonts/source-sans-3-400.woff2") format("woff2"); }
-@font-face { font-family: "Source Sans 3"; font-weight: 600; font-display: swap; src: url("./fonts/source-sans-3-600.woff2") format("woff2"); }
-@font-face { font-family: "Ubuntu"; font-weight: 500; font-display: swap; src: url("./fonts/ubuntu-500.woff2") format("woff2"); }
-@font-face { font-family: "JetBrains Mono"; font-weight: 400; font-display: swap; src: url("./fonts/jetbrains-mono-400.woff2") format("woff2"); }
+/* Visual reference: fp.josedomingo.org (Pledin). Same palette, measures and
+   type scale, own implementation. Accent and muted are one step darker than
+   Pledin's so small text keeps WCAG AA contrast. */
 
 /* ---------- Tokens ---------- */
 :root {
   color-scheme: light;
-  --bg: #FBFCFD;
-  --bg-soft: #F2F5F8;
-  --ink: #18212B;
-  --muted: #5A6673;
-  --rule: #E1E7EE;
-  --rule-strong: #C9D3DE;
-  --accent: #1D4E89;
-  --accent-soft: #EAF1F9;
-  --warn: #B0420E;
-  --warn-soft: #FDF4EC;
-  --ok: #0E6E44;
-  --ok-soft: #EEF8F2;
-  --ko: #B4232B;
-  --ko-soft: #FDF2F2;
-  --code-bg: #F4F6F9;
-  --focus: #1D4E89;
+  --bg: #FFFFFF;
+  --bg-nav: #F8FAFC;
+  --bg-soft: #F1F5F9;
+  --ink: #0F172A;
+  --muted: #5B6B80;
+  --rule: #E2E8F0;
+  --rule-strong: #CBD5E1;
+  --control: #7C8AA0;
+  --accent: #2563EB;
+  --accent-high: #1D4ED8;
+  --accent-soft: #EFF6FF;
+  --warn: #B45309;
+  --warn-soft: #FFFBEB;
+  --ok: #047857;
+  --ok-soft: #ECFDF5;
+  --ko: #B91C1C;
+  --ko-soft: #FEF2F2;
+  --code-bg: #F0F0F0;
+  --focus: #2563EB;
 
-  --font-body: "Source Sans 3", -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Ubuntu", var(--font-body);
-  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --font-body: ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-body);
+  --font-mono: ui-monospace, monospace;
 
-  --header-h: 3.5rem;
-  --sidebar-w: 16rem;
-  --toc-w: 13.5rem;
-  --measure: 46rem;
+  --header-h: 4rem;
+  --sidebar-w: 18rem;
+  --toc-w: 14rem;
+  --measure: 50rem;
   --gutter: 1rem;
-  --radius: 6px;
+  --radius: 0.375rem;
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #12181F;
-  --bg-soft: #19212A;
-  --ink: #DCE3EA;
-  --muted: #9BA8B6;
-  --rule: #26313D;
-  --rule-strong: #364452;
-  --accent: #8DB8EC;
-  --accent-soft: #1B2A3B;
-  --warn: #F2A574;
-  --warn-soft: #2A2019;
-  --ok: #86CFA6;
-  --ok-soft: #17271F;
-  --ko: #F3A3A8;
-  --ko-soft: #2C1C20;
-  --code-bg: #1A222C;
-  --focus: #8DB8EC;
+  --bg: #0F172A;
+  --bg-nav: #1E293B;
+  --bg-soft: #1E293B;
+  --ink: #F1F5F9;
+  --muted: #94A3B8;
+  --rule: #334155;
+  --rule-strong: #475569;
+  --control: #64748B;
+  --accent: #60A5FA;
+  --accent-high: #93C5FD;
+  --accent-soft: #1E3A5F55;
+  --warn: #FBBF24;
+  --warn-soft: #78350F33;
+  --ok: #34D399;
+  --ok-soft: #064E3B33;
+  --ko: #FCA5A5;
+  --ko-soft: #7F1D1D33;
+  --code-bg: #1E1E2E;
+  --focus: #60A5FA;
 }
 
 /* Without JS the head script never runs: follow the system. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
     color-scheme: dark;
-    --bg: #12181F; --bg-soft: #19212A; --ink: #DCE3EA; --muted: #9BA8B6;
-    --rule: #26313D; --rule-strong: #364452; --accent: #8DB8EC; --accent-soft: #1B2A3B;
-    --warn: #F2A574; --warn-soft: #2A2019; --ok: #86CFA6; --ok-soft: #17271F;
-    --ko: #F3A3A8; --ko-soft: #2C1C20; --code-bg: #1A222C; --focus: #8DB8EC;
+    --bg: #0F172A; --bg-nav: #1E293B; --bg-soft: #1E293B; --ink: #F1F5F9; --muted: #94A3B8;
+    --rule: #334155; --rule-strong: #475569; --control: #64748B;
+    --accent: #60A5FA; --accent-high: #93C5FD; --accent-soft: #1E3A5F55;
+    --warn: #FBBF24; --warn-soft: #78350F33; --ok: #34D399; --ok-soft: #064E3B33;
+    --ko: #FCA5A5; --ko-soft: #7F1D1D33; --code-bg: #1E1E2E; --focus: #60A5FA;
   }
 }
 
@@ -81,13 +86,12 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 400 1.0625rem/1.65 var(--font-body);
-  text-rendering: optimizeLegibility;
+  font: 400 1rem/1.7 var(--font-body);
   overflow-wrap: break-word;
 }
 
-a { color: var(--accent); text-underline-offset: 0.18em; text-decoration-thickness: 1px; }
-a:hover { text-decoration-thickness: 2px; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-high); text-decoration: underline; }
 
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
 
@@ -101,7 +105,7 @@ button { font: inherit; color: inherit; }
 }
 
 .skip-link {
-  position: absolute; left: var(--gutter); top: -4rem; z-index: 100;
+  position: absolute; left: var(--gutter); top: -4rem; z-index: 200;
   padding: 0.5rem 0.875rem; background: var(--bg); border: 1px solid var(--rule-strong);
   border-radius: var(--radius);
 }
@@ -111,44 +115,55 @@ button { font: inherit; color: inherit; }
   html { scroll-behavior: smooth; }
 }
 
-/* ---------- Prose (RA pages and microposts) ---------- */
-.prose { max-width: var(--measure); }
+/* ---------- Prose (RA pages, microposts, indexes) ---------- */
+.prose { max-width: var(--measure); line-height: 1.75; }
 .prose > :first-child { margin-top: 0; }
 
 .prose h1, .page-title {
-  font: 500 clamp(1.75rem, 1.4rem + 1.4vw, 2.25rem)/1.2 var(--font-display);
-  letter-spacing: -0.01em;
-  margin: 0 0 0.5rem;
-  text-wrap: balance;
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 1.5rem;
 }
-
 .prose h2 {
-  font: 500 1.4rem/1.3 var(--font-display);
-  margin: 3rem 0 0.75rem;
-  text-wrap: balance;
+  font-size: 1.375rem;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 2.5rem 0 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--rule);
 }
-.prose h3 {
-  font: 600 1.125rem/1.4 var(--font-body);
-  margin: 2rem 0 0.5rem;
-}
-.prose h4 { font: 600 1rem/1.4 var(--font-body); margin: 1.5rem 0 0.25rem; }
+.prose h3 { font-size: 1.1rem; font-weight: 600; line-height: 1.5; margin: 2rem 0 0.5rem; }
+.prose h4 { font-size: 1rem; font-weight: 600; line-height: 1.5; margin: 1.5rem 0 0.5rem; }
+.prose :is(h1, h2, h3) { scroll-margin-top: calc(var(--header-h) + 1rem); }
 
-.prose p, .prose ul, .prose ol, .prose table, .prose pre, .prose figure { margin: 0 0 1rem; }
-.prose ul, .prose ol { padding-left: 1.4rem; }
-.prose li { margin: 0.25rem 0; }
+.prose p { margin: 0 0 1rem; }
+.prose ul, .prose ol { margin: 0 0 1rem; padding-left: 1.5rem; }
+.prose li { margin-bottom: 0.35rem; }
 .prose li > p { margin: 0 0 0.5rem; }
-.prose li::marker { color: var(--muted); }
-.prose strong { font-weight: 600; }
+.prose li > :is(ul, ol) { margin-bottom: 0; }
+.prose strong { font-weight: 700; }
+.prose figure { margin: 1.25rem 0; }
 
 .prose hr { border: 0; border-top: 1px solid var(--rule); margin: 2.5rem 0; }
 
-.prose :not(pre) > code {
-  font: 0.875em var(--font-mono);
+.prose img { border-radius: var(--radius); display: block; margin: 0 auto; }
+
+.prose blockquote {
+  margin: 1.25rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid var(--rule);
+  border-radius: 0 var(--radius) var(--radius) 0;
   background: var(--bg-soft);
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  padding: 0.05em 0.3em;
-  overflow-wrap: break-word;
+  color: var(--muted);
+}
+
+.prose :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--bg-soft);
+  border-radius: 0.25rem;
+  padding: 0.1em 0.3em;
 }
 
 /* Tables scroll inside themselves, never the page. */
@@ -157,33 +172,37 @@ button { font: inherit; color: inherit; }
   max-width: 100%;
   overflow-x: auto;
   border-collapse: collapse;
-  font-size: 0.9375rem;
-  line-height: 1.5;
+  margin: 1.25rem 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 .prose th, .prose td {
-  padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid var(--rule);
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--rule);
   text-align: left;
   vertical-align: top;
 }
-.prose th { font-weight: 600; border-bottom-color: var(--rule-strong); white-space: nowrap; }
-.prose td:first-child, .prose th:first-child { padding-left: 0; }
+.prose th { background: var(--bg-soft); font-weight: 600; }
 
-.lede { color: var(--muted); font-size: 1.1875rem; line-height: 1.5; margin: 0 0 2rem; max-width: 40rem; }
+.lede { color: var(--muted); margin: 0 0 1.5rem; max-width: 46rem; }
 
 .eyebrow {
-  font: 400 0.8125rem/1.4 var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--muted);
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.5rem;
 }
 
 /* ---------- Code blocks (Shiki dual theme, see astro.config.mjs) ---------- */
 .astro-code {
-  font: 0.875rem/1.6 var(--font-mono);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.7;
   background: var(--code-bg) !important;
-  border: 1px solid var(--rule);
-  border-radius: var(--radius);
-  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  padding: 1rem;
   overflow-x: auto;
   tab-size: 2;
 }

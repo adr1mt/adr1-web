@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/styles/global.css"
+        ],
+        "createdAt": "2026-10-05T09:49:31.278Z",
+        "reason": "User requested very high visual fidelity to Pledin (fp.josedomingo.org); its blockquote uses exactly this 4px left border"
+      }
+    ]
+  }
+}

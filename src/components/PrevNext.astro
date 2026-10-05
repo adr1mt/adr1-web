@@ -4,45 +4,50 @@ interface Props { prev?: Link; next?: Link }
 const { prev, next } = Astro.props;
 ---
 
-<nav class="pager" aria-label="Pàgina anterior i següent" data-pagefind-ignore="all">
-  {prev ? (
-    <a class="prev" href={prev.url} rel="prev">
-      <span class="dir">← Anterior{prev.ref && ` · ${prev.ref}`}</span>
-      <span class="ttl">{prev.title}</span>
-    </a>
-  ) : <span />}
-  {next && (
-    <a class="next" href={next.url} rel="next">
-      <span class="dir">Següent{next.ref && ` · ${next.ref}`} →</span>
-      <span class="ttl">{next.title}</span>
-    </a>
-  )}
-</nav>
+{(prev || next) && (
+  <nav class="pager" aria-label="Pàgina anterior i següent" data-pagefind-ignore="all">
+    {prev && (
+      <a class="prev" href={prev.url} rel="prev">
+        <span class="dir">← Anterior</span>
+        <span class="ttl">{prev.ref && `${prev.ref} · `}{prev.title}</span>
+      </a>
+    )}
+    {next && (
+      <a class="next" href={next.url} rel="next">
+        <span class="dir">Següent →</span>
+        <span class="ttl">{next.ref && `${next.ref} · `}{next.title}</span>
+      </a>
+    )}
+  </nav>
+)}
 
 <style>
   .pager {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    justify-content: space-between;
     gap: 1rem;
-    margin-top: 4rem;
-    padding-top: 1.5rem;
+    max-width: var(--measure);
+    margin-top: 3rem;
+    padding-top: 2rem;
     border-top: 1px solid var(--rule);
   }
   a {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 0.75rem 1rem;
+    gap: 0.3rem;
+    max-width: 45%;
+    padding: 1rem;
     border: 1px solid var(--rule);
-    border-radius: var(--radius);
+    border-radius: 0.75rem;
+    background: var(--bg-nav);
     text-decoration: none;
   }
-  a:hover { border-color: var(--rule-strong); background: var(--bg-soft); }
-  .next { text-align: right; grid-column: 2; }
-  .dir { font-size: 0.8125rem; color: var(--muted); }
-  .ttl { color: var(--ink); font-weight: 600; line-height: 1.35; }
-  @media (max-width: 34rem) {
-    .pager { grid-template-columns: 1fr; }
-    .next { grid-column: 1; }
+  a:hover { border-color: var(--accent); text-decoration: none; }
+  .next { margin-left: auto; text-align: right; }
+  .dir { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+  .ttl { font-size: 0.9rem; font-weight: 600; line-height: 1.4; color: var(--ink); }
+  @media (max-width: 30rem) {
+    .pager { flex-direction: column; }
+    a { max-width: none; }
   }
 </style>

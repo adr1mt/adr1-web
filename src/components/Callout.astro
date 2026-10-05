@@ -6,21 +6,29 @@ interface Props {
 }
 const { kind } = Astro.props;
 const tone = { recordatori: 'warn', 'bones pràctiques': 'ok', nota: 'info' }[kind];
+const label = kind[0].toUpperCase() + kind.slice(1);
 ---
 
-<aside class:list={['callout', tone]} aria-label={kind[0].toUpperCase() + kind.slice(1)}>
+<aside class:list={['callout', tone]} aria-label={label}>
+  <p class="callout-title">{label}</p>
   <slot />
 </aside>
 
 <style>
   .callout {
-    margin: 0 0 1.25rem;
-    padding: 0.875rem 1.125rem;
-    border-left: 3px solid;
-    border-radius: 0 var(--radius) var(--radius) 0;
+    margin: 1.5rem 0;
+    padding: 1rem 1.25rem;
+    border-left: 4px solid;
+    border-radius: var(--radius);
+    font-size: 0.95rem;
   }
   .callout > :global(:last-child) { margin-bottom: 0; }
-  .warn { border-color: var(--warn); background: var(--warn-soft); }
-  .ok { border-color: var(--ok); background: var(--ok-soft); }
-  .info { border-color: var(--accent); background: var(--accent-soft); }
+  .callout :global(p) { margin-bottom: 0.5rem; }
+  .callout-title { font-weight: 700; font-size: 0.9rem; margin: 0 0 0.5rem; }
+  .info { border-color: #3B82F6; background: var(--accent-soft); }
+  .info .callout-title { color: var(--accent-high); }
+  .warn { border-color: #F59E0B; background: var(--warn-soft); }
+  .warn .callout-title { color: var(--warn); }
+  .ok { border-color: #10B981; background: var(--ok-soft); }
+  .ok .callout-title { color: var(--ok); }
 </style>

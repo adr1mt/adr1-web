@@ -23,7 +23,7 @@ export default defineConfig({
   integrations: [mdx()],
   markdown: {
     shikiConfig: {
-      themes: { light: 'github-light', dark: 'github-dark-dimmed' },
+      themes: { light: 'vitesse-light', dark: 'catppuccin-mocha' },
       defaultColor: false,
       transformers: [codeTitle],
     },
