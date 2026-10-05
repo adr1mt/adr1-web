@@ -4,9 +4,11 @@
 const { 'data-title': title, 'data-language': lang, ...attrs } = Astro.props;
 const label = title ?? (lang && lang !== 'plaintext' && lang !== 'text' ? lang.toUpperCase() : 'Codi');
 const terminal = label.startsWith('Terminal');
+// JSON files are always shown on a dark background, also with the light theme.
+const dark = lang === 'json';
 ---
 
-<div class:list={['code', { terminal }]}>
+<div class:list={['code', { terminal, dark }]}>
   <p class="code-label">{label}</p>
   <div class="code-body">
     <pre {...attrs} data-language={lang}><slot /></pre>
@@ -68,6 +70,8 @@ const terminal = label.startsWith('Terminal');
   }
   .copy:hover { color: var(--bg); background: var(--muted); }
   .copy[hidden] { display: none; }
+  .dark .copy { color: #CDD6F4; background: #2A3646; border-color: #526174; }
+  .dark .copy:hover { color: #16202E; background: #CDD6F4; }
   .icon-done, .copy[data-done] .icon-copy { display: none; }
   .copy[data-done] .icon-done { display: block; }
 </style>

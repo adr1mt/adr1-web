@@ -195,6 +195,12 @@ button { font: inherit; color: inherit; }
   margin: 0 0 0.5rem;
 }
 
+/* Collapsible block, e.g. a long file that is only copied. */
+.fold { margin: 1.25rem 0; border: 1px solid var(--rule); border-radius: 0.5rem; padding: 0 1rem; }
+.fold summary { padding: 0.75rem 0; font-weight: 600; color: var(--accent); cursor: pointer; }
+.fold[open] summary { border-bottom: 1px solid var(--rule); }
+.fold .code { margin: 1rem 0; }
+
 /* ---------- Code blocks (Shiki dual theme, see astro.config.mjs) ---------- */
 .astro-code {
   font-family: var(--font-mono);
@@ -212,3 +218,5 @@ button { font: inherit; color: inherit; }
   :root:not([data-theme]) .astro-code, :root:not([data-theme]) .astro-code span { color: var(--shiki-dark); }
 }
 .astro-code code { font: inherit; }
+.code.dark .astro-code { background: #16202E !important; }
+.code.dark .astro-code, .code.dark .astro-code span { color: var(--shiki-dark); }
