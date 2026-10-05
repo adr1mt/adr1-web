@@ -1,0 +1,15 @@
+---
+import MicroblogLayout from '../../layouts/MicroblogLayout.astro';
+import Micropost from '../../components/Micropost.astro';
+import { getMicroposts } from '../../lib/site';
+
+const posts = await getMicroposts();
+---
+
+<MicroblogLayout title="Microblog" description="Recomanacions tècniques breus per a l’alumnat de Serveis en Xarxa.">
+  <header class="intro">
+    <h1 class="page-title">Microblog</h1>
+    <p class="lede">Recomanacions breus: eines, ordres, recursos i bones pràctiques que val la pena conèixer.</p>
+  </header>
+  {posts.map((post) => <Micropost post={post} />)}
+</MicroblogLayout>

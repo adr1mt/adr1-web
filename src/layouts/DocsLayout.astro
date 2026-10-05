@@ -1,0 +1,107 @@
+---
+import type { MarkdownHeading } from 'astro';
+import BaseLayout from './BaseLayout.astro';
+import Ra1Nav from '../components/Ra1Nav.astro';
+import Toc from '../components/Toc.astro';
+import PrevNext from '../components/PrevNext.astro';
+import type { Ra1Page } from '../lib/site';
+
+interface Crumb { label: string; url?: string }
+interface Link { url: string; ref?: string; title: string }
+
+interface Props {
+  title: string;
+  description?: string;
+  pages: Ra1Page[];
+  currentId?: string;
+  breadcrumb: Crumb[];
+  headings?: MarkdownHeading[];
+  prev?: Link;
+  next?: Link;
+}
+
+const { title, description, pages, currentId, breadcrumb, headings = [], prev, next } = Astro.props;
+---
+
+<BaseLayout title={title} description={description} current="ra1">
+  <Fragment slot="menu">
+    <div class="menu-nav"><Ra1Nav pages={pages} currentId={currentId} /></div>
+  </Fragment>
+
+  <div class="docs">
+    <aside class="docs-sidebar" data-pagefind-ignore="all">
+      <Ra1Nav pages={pages} currentId={currentId} />
+    </aside>
+
+    <main id="contingut" class="docs-main" tabindex="-1">
+      <nav class="breadcrumb" aria-label="Ruta de navegació" data-pagefind-ignore="all">
+        <ol>
+          {breadcrumb.map((c) => (
+            <li>{c.url ? <a href={c.url}>{c.label}</a> : <span aria-current="page">{c.label}</span>}</li>
+          ))}
+        </ol>
+      </nav>
+      <article class="prose" data-pagefind-body>
+        <slot />
+      </article>
+      <PrevNext prev={prev} next={next} />
+    </main>
+
+    <aside class="docs-toc">
+      <div class="docs-toc-inner">
+        <Toc headings={headings} variant="aside" />
+      </div>
+    </aside>
+  </div>
+</BaseLayout>
+
+<style>
+  .docs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 90rem;
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+  }
+  .docs-sidebar, .docs-toc { display: none; }
+  .docs-main { padding: 1.5rem 0 0; min-width: 0; }
+  .docs-main:focus { outline: none; }
+
+  @media (min-width: 64rem) {
+    .docs { grid-template-columns: var(--sidebar-w) minmax(0, 1fr); column-gap: 3rem; }
+    .docs-sidebar {
+      display: block;
+      position: sticky;
+      top: var(--header-h);
+      align-self: start;
+      max-height: calc(100dvh - var(--header-h));
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding: 1.5rem 0.25rem 2rem 0;
+      margin-left: -0.625rem;
+    }
+    .docs-main { padding-top: 2rem; }
+  }
+  @media (min-width: 80rem) {
+    .docs { grid-template-columns: var(--sidebar-w) minmax(0, var(--measure)) var(--toc-w); justify-content: space-between; column-gap: 3rem; }
+    .docs-toc { display: block; }
+    .docs-toc-inner { position: sticky; top: calc(var(--header-h) + 2rem); padding-top: 2rem; max-height: calc(100dvh - var(--header-h) - 2rem); overflow-y: auto; }
+    .docs-main :global(.toc-inline) { display: none; }
+  }
+
+  .menu-nav { padding: 1rem calc(var(--gutter) - 0.625rem); }
+
+  .breadcrumb ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    list-style: none;
+    margin: 0 0 1.25rem;
+    padding: 0;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+  .breadcrumb li + li::before { content: '/'; margin-right: 0.25rem; color: var(--rule-strong); }
+  .breadcrumb a { color: var(--muted); text-decoration: none; }
+  .breadcrumb a:hover { color: var(--ink); text-decoration: underline; }
+</style>

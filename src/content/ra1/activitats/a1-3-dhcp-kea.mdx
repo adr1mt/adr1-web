@@ -1,0 +1,58 @@
+---
+ref: A1.3
+title: "Servidor DHCP amb Kea"
+description: "Muntar el servidor DHCP que es fa servir de veritat, amb reserves i sortida a Internet."
+---
+
+## Amb què treballaràs
+
+| Màquina | Targetes | Paper |
+|---|---|---|
+| Ubuntu **Server** | puigcastellar1 + personal1 | Servidor DHCP i porta d'enllaç |
+| Ubuntu **Desktop** | només personal1 | Client |
+
+Parteix d’una **còpia de la base preparada a [A1.1](../../activitats/a1-1-posada-a-punt/)** o d’una màquina nova. No continuïs directament amb el servidor d’[A1.2](../../activitats/a1-2-dhcp-systemd-networkd/): allà vas apartar Netplan i activar un altre DHCP. Abans de començar, comprova que Netplan gestiona la xarxa i que no hi ha cap servidor DHCP ni regles de NAT de pràctiques anteriors.
+
+Treballem al servidor per SSH des de la màquina amfitriona.
+
+## Què has de fer
+
+Consulta [G1.1](../../guies/g1-1-netplan/) (xarxa), [G1.2](../../guies/g1-2-kea/) (Kea) i [G1.3](../../guies/g1-3-nftables/) (encaminament i NAT).
+
+1. Comprova la base i posa el teu nom al servidor. Mantén l’externa per DHCP i configura `personal1` amb `10.0.0.1/8`.
+2. Instal·la Kea i configura un rang per a **200 dispositius exactes**. Els dos extrems compten. Escolta només a `personal1`.
+3. Reparteix DNS `9.9.9.9`, domini `elteunom.internal` i porta d’enllaç `10.0.0.1`.
+4. Reserva una IP al client amb la seva MAC real. En aquesta pràctica, situa-la fora del rang automàtic.
+5. Configura encaminament i NAT perquè el client tingui Internet.
+6. Comprova la concessió, les opcions rebudes i la reserva des del client. Identifica DORA en una captura inicial i verifica accés per IP i resolució de noms.
+
+## Què has d’entregar
+
+Entrega un document breu amb el rang calculat, la configuració i captures de:
+
+- Validació de Kea, servei actiu i escolta a UDP 67 només a la interna.
+- Concessió al registre i configuració rebuda pel client.
+- DORA complet i IP reservada rebuda pel client després del canvi.
+- Encaminament, regles NAT i connectivitat del client, amb resolució de noms.
+
+Justifica per què situem la reserva fora del rang, tot i que Kea també admet reserves dins. Comprova el gestor de xarxa del client abans de renovar.
+
+## Al currículum
+
+**CA 1.1** Reconeix el funcionament dels mecanismes automatitzats de configuració dels paràmetres de xarxa.
+
+**CA 1.3** Il·lustra els procediments i pautes d'una sol·licitud de configuració dels paràmetres de xarxa.
+
+**CA 1.4** Instal·la un servei de configuració dinàmica dels paràmetres de xarxa.
+
+**CA 1.5** Prepara el servei per assignar la configuració bàsica als sistemes d'una xarxa local.
+
+**CA 1.6** Realitza assignacions dinàmiques i estàtiques.
+
+**CA 1.7** Integra en el servei opcions addicionals de configuració.
+
+**CA 1.8** Verifica la correcta assignació dels paràmetres.
+
+**CA 8.8** Estableix un mecanisme que permeti reenviar trànsit entre dues o més interfícies d'un mateix sistema.
+
+**CA 8.9** Comprova l'accés a una xarxa determinada des dels sistemes connectats a una altra xarxa.

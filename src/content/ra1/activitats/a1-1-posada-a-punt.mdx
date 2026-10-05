@@ -1,0 +1,44 @@
+---
+ref: A1.1
+title: "Posada a punt del servidor"
+description: "Deixar la màquina llesta: nom, hora, actualitzacions i les dues targetes de xarxa."
+---
+
+## Amb què treballaràs
+
+Una màquina virtual **Ubuntu Server nova** a **isardVDI** amb dues targetes de xarxa:
+
+| Targeta | Nom típic | Paper |
+|---|---|---|
+| `puigcastellar1` | `enp1s0` | Xarxa del centre, amb Internet |
+| `personal1` | `enp2s0` | Xarxa interna teva, per als teus clients |
+
+Els noms típics són orientatius: comprova sempre com es diuen a la teva màquina abans d'escriure res. Connecta-t'hi per **SSH** des del teu equip.
+
+Conserva aquest servidor per a [A1.2](../../activitats/a1-2-dhcp-systemd-networkd/). En acabar A1.1, guarda també una còpia o instantània de la base preparada, abans d’instal·lar serveis o canviar la gestió de xarxa. Et servirà per començar altres pràctiques sense repetir la posada a punt.
+
+## Què has de fer
+
+Consulta la [G1.1](../../guies/g1-1-netplan/) per a la xarxa.
+
+1. Actualitza tots els paquets del sistema.
+2. Canvia el _hostname_ pel teu nom, en minúscules i sense accents.
+3. Configura la zona horària d’aquí.
+4. Desactiva les actualitzacions automàtiques només durant la pràctica, per mantenir un estat reproduïble.
+5. Configura l’externa `puigcastellar1` per DHCP i la interna `personal1` amb `192.168.1.1/24` i DNS `9.9.9.9`. Comprova els noms reals de les targetes. Aplica els canvis amb reversió des de SSH.
+6. Comprova les adreces, la ruta per defecte per l’externa i la resolució DNS. No posis cap porta d’enllaç a la interna.
+7. Guarda una còpia o instantània de la base abans d’instal·lar serveis.
+
+## Què has d’entregar
+
+Entrega un document breu amb les dades del servidor i captures de:
+
+- Actualització completada, _hostname_, zona horària i estat de les actualitzacions automàtiques.
+- Configuració de Netplan, IP de les targetes, ruta per defecte i resolució d’un nom.
+- Reentrada per SSH i còpia o instantània de la base preparada.
+
+Justifica per què `personal1` no té porta d’enllaç. En explotació, les actualitzacions de seguretat necessiten un responsable i un calendari.
+
+## Al currículum
+
+**CA 8.1** Instal·la i configura el maquinari d'un sistema amb accés a una xarxa privada local i a una de pública.

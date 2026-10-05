@@ -1,0 +1,66 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import { SITE_TITLE, href } from '../lib/site';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Section highlighted in the header ("ra1" | "microblog"). */
+  current?: string;
+}
+
+const { title, description = 'Material del mòdul 0227 Serveis en Xarxa (CFGM SMX).', current } = Astro.props;
+const fullTitle = title === SITE_TITLE ? title : `${title} · ${SITE_TITLE}`;
+---
+
+<!doctype html>
+<html lang="ca">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href={href('/favicon.svg')} type="image/svg+xml" />
+    <link rel="alternate" type="application/rss+xml" title="Microblog · Serveis en Xarxa" href={href('/microblog/rss.xml')} />
+    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <meta name="color-scheme" content="light dark" />
+    <!-- Runs before paint: stored choice, otherwise the system preference. -->
+    <script is:inline>
+      (function () {
+        var theme;
+        try { theme = localStorage.getItem('tema'); } catch (e) {}
+        if (theme !== 'light' && theme !== 'dark') {
+          theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#contingut">Salta al contingut</a>
+    <Header current={current}>
+      <slot name="menu" />
+    </Header>
+    <slot />
+    <footer class="site-footer">
+      <p>
+        Mòdul 0227 · Serveis en Xarxa · CFGM SMX ·
+        <a href={href('/microblog/rss.xml')}>RSS del microblog</a>
+      </p>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .site-footer {
+    border-top: 1px solid var(--rule);
+    margin-top: 4rem;
+    padding: 1.5rem var(--gutter) 2rem;
+    color: var(--muted);
+    font-size: 0.875rem;
+    text-align: center;
+  }
+  .site-footer p { margin: 0; }
+  .site-footer a { color: inherit; }
+</style>

@@ -1,0 +1,94 @@
+---
+ref: T1.1
+title: "Fonaments de DHCP"
+description: "Per què les xarxes no es configuren a mà, i què passa quan un equip demana adreça."
+---
+
+import Flow from "../../../components/Flow.astro";
+import Question from "../../../components/Question.astro";
+import Quiz from "../../../components/Quiz.astro";
+
+## Què sabràs fer en acabar
+
+- Explicar per què les xarxes no es configuren a mà.
+- Descriure els quatre passos del procés **DORA**.
+- Entendre què és una concessió i per què caduca.
+- Distingir una IP manual d’una IP rebuda per DHCP, amb reserva o sense.
+
+## IP manual o configuració per DHCP?
+
+Hi ha dues maneres de configurar un equip: escriure les dades **manualment** o demanar-les a un **servidor DHCP**.
+
+Rebre la configuració per DHCP no vol dir que la IP canviï sempre. Amb una **reserva**, el servidor dona la mateixa IP a aquell equip. El client continua fent servir DHCP.
+
+En el nostre laboratori, el servidor DHCP té una IP manual a la targeta interna; els clients li demanen la configuració.
+
+## El problema que resol DHCP
+
+Perquè un equip funcioni en xarxa necessita quatre dades: **IP**, **màscara**, **porta d'enllaç** i **DNS**. Posar-les a mà va bé amb tres màquines. Amb tres-centes, no.
+
+Configurar a mà una xarxa gran té tres problemes:
+
+- Cal apuntar quina IP té cada equip per no repetir-ne cap.
+- Si un portàtil canvia d'aula, s'ha de reconfigurar.
+- Canviar el DNS del centre vol dir tocar totes les màquines.
+
+**DHCP** (_Dynamic Host Configuration Protocol_) posa aquesta feina en un servidor. Tu defineixes la configuració _una sola vegada_ i cada equip que es connecta la demana i la rep sol. És el que fa el router de casa teva i el Wi-Fi de l'institut: canvia la mida, no el mecanisme.
+
+## Funcionament: el procés DORA
+
+Hi ha una pregunta òbvia: si el client encara no té IP, com pot demanar res? Ho fa per **difusió** (_broadcast_), un missatge que arriba a tothom del segment. DHCP treballa sobre **UDP**: el servidor escolta al **port 67** i el client al **68**.
+
+<Flow steps={[{"n": "01", "t": "DISCOVER", "d": "El client crida: «hi ha algun servidor DHCP?»"}, {"n": "02", "t": "OFFER", "d": "El servidor ofereix una IP del seu rang."}, {"n": "03", "t": "REQUEST", "d": "El client accepta aquella oferta."}, {"n": "04", "t": "ACK", "d": "El servidor confirma. Ja pots fer servir l'adreça."}]} />
+
+Si responen diversos servidors, el client tria una oferta i la demana amb REQUEST. L’ACK confirma la **concessió** (_lease_): el dret a fer servir aquella IP durant un temps limitat.
+
+L’adreça es presta, no es regala. Habitualment, a la meitat del temps el client demana renovar-la amb **REQUEST** i el servidor respon **ACK**. Si no la pot renovar i caduca, ha de deixar de fer servir la IP.
+
+## Tres maneres d’assignar adreces
+
+La diferència principal és **qui configura l’equip**. Si fa servir DHCP, el servidor pot triar una IP lliure o donar-li la que té reservada.
+
+| Configuració | Com rep la IP? | Exemple |
+|---|---|---|
+| **Manual (estàtica)** | L’escrius a l’equip. No demana la IP per DHCP. | Targeta interna del servidor DHCP |
+| **DHCP sense reserva** | El servidor tria una IP lliure del rang dinàmic (_pool_). | Portàtil d’un alumne |
+| **DHCP amb reserva** | El servidor associa un identificador de l’equip, com la MAC, a una IP concreta. | Impressora amb una IP estable |
+
+**Una reserva no és una IP escrita manualment al client.** La IP és estable, però la configuració arriba per DHCP, amb la seva concessió. A més de la IP, el servidor pot enviar màscara, porta d’enllaç i DNS.
+
+## Un DHCP que no toca
+
+Un router domèstic connectat a l’aula pot respondre peticions DHCP i donar una porta d’enllaç incorrecta. És un **DHCP furtiu**: un servidor no autoritzat que interfereix amb la configuració de la xarxa.
+
+Al laboratori, el nostre DHCP només ha de donar servei a `personal1`, mai a la xarxa del centre `puigcastellar1`.
+
+Si un equip s’assigna una IP `169.254.x.x`, és una adreça d’enllaç local: no és una concessió del nostre DHCP ni li dona sortida a Internet.
+
+## Resum
+
+- DHCP envia IP, màscara, porta d’enllaç i DNS al client.
+- Fa servir UDP: port **67** al servidor i **68** al client.
+- **DORA**: Discover → Offer → Request → ACK.
+- La **concessió** limita el temps d’ús de la IP; es pot renovar.
+- IP **manual**, o configuració per **DHCP amb reserva o sense**.
+
+## Comprova el que has après
+
+<Quiz>
+  <Question id="t1-1-dora-ordre" type="single" statement="Quin és el tercer pas del procés DORA?" explanation="Discover cerca servidors; Offer proposa una concessió; Request la demana i ACK la confirma." options={[["OFFER — el servidor ofereix una IP", false], ["REQUEST — el client accepta l'oferta", true], ["DISCOVER — el client busca un servidor", false], ["ACK — el servidor confirma la concessió", false]]} />
+  <Question id="t1-1-ports" type="single" statement="Sobre quin protocol i ports treballa DHCP?" explanation="DHCPv4 utilitza UDP: el servidor escolta al 67 i el client al 68." options={[["TCP, ports 67 i 68", false], ["UDP, port 67 al servidor i 68 al client", true], ["UDP, port 53 al servidor i 68 al client", false], ["TCP, port 80 als dos extrems", false]]} />
+  <Question id="t1-1-reserva" type="single" statement="Un client rep sempre la mateixa IP gràcies a una reserva. Com està configurat?" explanation="Amb reserva, el client continua demanant la configuració per DHCP; és el servidor qui li assigna una IP concreta." options={[["Amb una IP escrita manualment al client", false], ["Per DHCP: el servidor li té reservada aquella IP", true], ["Sense DHCP, perquè una IP estable no necessita servidor", false], ["Amb una IP d’enllaç local triada pel client", false]]} />
+  <Question id="t1-1-apipa" type="single" statement="Un client acaba amb l'adreça 169.254.12.7. Què vol dir?" explanation="Una IPv4 169.254.x.x és una adreça d’enllaç local; no acredita una concessió DHCP." options={[["Que el servidor DHCP li ha donat una adreça privada", false], ["Que s’ha assignat una IP d’enllaç local, no una concessió del nostre DHCP", true], ["Que la concessió ha caducat però encara funciona", false], ["Que hi ha un conflicte amb un altre equip", false]]} />
+  <Question id="t1-1-afirmacions" type="multi" statement="Selecciona totes les afirmacions certes sobre DHCP" explanation="DHCP aporta una concessió temporal i opcions de xarxa; renovar no implica repetir tot el DORA." options={[["Cada concessió té una durada limitada.", true], ["El client tria lliurement la IP que vol.", false], ["Habitualment, el client comença a renovar a la meitat del temps de concessió.", true], ["Una reserva associa una MAC concreta a una IP concreta.", true], ["Una IP estàtica ha d'estar dins del rang dinàmic.", false]]} />
+</Quiz>
+
+## Al currículum
+
+**Contingut 1.2** DHCP. Rangs, exclusions, concessions i reserves.
+
+**CA 1.1** Reconeix el funcionament dels mecanismes automatitzats de configuració dels paràmetres de xarxa.
+
+**CA 1.2** Identifica els avantatges que proporcionen.
+
+**CA 1.3** Il·lustra els procediments i pautes d'una sol·licitud de configuració dels paràmetres de xarxa.

@@ -1,0 +1,92 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE_TITLE, OLD_WEB, href, getMicroposts, postUrl, formatDate } from '../lib/site';
+
+// RA2–RA8 are not part of this pilot: they link to the current web.
+const ras = [
+  { n: 1, title: 'Instal·lació de serveis de configuració dinàmica (DHCP)', url: href('/ra1/') },
+  { n: 2, title: 'Instal·lació de serveis de resolució de noms (DNS)' },
+  { n: 3, title: 'Instal·lació de serveis de transferència de fitxers' },
+  { n: 4, title: 'Gestió de servidors de correu electrònic' },
+  { n: 5, title: 'Gestió de servidors web' },
+  { n: 6, title: 'Gestió de mètodes d’accés remot' },
+  { n: 7, title: 'Desplegament de xarxes sense fils segures' },
+  { n: 8, title: 'Accés des de xarxes locals a xarxes públiques' },
+];
+const latest = (await getMicroposts()).slice(0, 3);
+---
+
+<BaseLayout title={SITE_TITLE}>
+  <main id="contingut" class="home" tabindex="-1">
+    <header>
+      <p class="eyebrow">Mòdul 0227 · CFGM SMX</p>
+      <h1 class="page-title">Serveis en Xarxa</h1>
+      <p class="lede">Teoria, guies i activitats per instal·lar i configurar els serveis d’una xarxa: DHCP, DNS, FTP, correu, web, accés remot, sense fils i proxy.</p>
+    </header>
+
+    <section aria-labelledby="ras">
+      <h2 id="ras">Resultats d’aprenentatge</h2>
+      <ol class="ras">
+        {ras.map((ra) => (
+          <li>
+            <a href={ra.url ?? `${OLD_WEB}RA${ra.n}/`}>
+              <span class="ref">RA{ra.n}</span>
+              <span class="ttl">{ra.title}</span>
+              {!ra.url && <span class="where">Web actual</span>}
+            </a>
+          </li>
+        ))}
+      </ol>
+      <p class="note">Aquesta versió nova inclou de moment el RA1. Els altres enllacen al <a href={OLD_WEB}>web actual</a>.</p>
+    </section>
+
+    {latest.length > 0 && (
+      <section aria-labelledby="micro">
+        <h2 id="micro">Del microblog</h2>
+        <ul class="latest">
+          {latest.map((p) => (
+            <li>
+              <a href={postUrl(p)}>{p.data.title}</a>
+              <time datetime={p.data.date.toISOString().slice(0, 10)}>{formatDate(p.data.date)}</time>
+            </li>
+          ))}
+        </ul>
+        <p><a href={href('/microblog/')}>Totes les entrades →</a></p>
+      </section>
+    )}
+  </main>
+</BaseLayout>
+
+<style>
+  .home { max-width: calc(var(--measure) + 4rem); margin: 0 auto; padding: 3rem var(--gutter) 0; }
+  .home:focus { outline: none; }
+  h2 { font: 500 1.25rem/1.3 var(--font-display); margin: 3rem 0 1rem; }
+
+  .ras, .latest { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+  .ras li, .latest li { border-bottom: 1px solid var(--rule); }
+  .ras a {
+    display: grid;
+    grid-template-columns: 3rem 1fr auto;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.75rem 0.5rem;
+    margin: 0 -0.5rem;
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .ras a:hover { background: var(--bg-soft); }
+  .ras a:hover .ttl { text-decoration: underline; }
+  .ref { font: 0.875rem var(--font-mono); color: var(--muted); }
+  .ras li:first-child .ttl { color: var(--accent); font-weight: 600; }
+  .where { font-size: 0.8125rem; color: var(--muted); white-space: nowrap; }
+  .note { color: var(--muted); font-size: 0.9375rem; margin-top: 1rem; }
+
+  .latest li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.25rem 1rem; padding: 0.75rem 0; }
+  .latest time { color: var(--muted); font-size: 0.875rem; }
+
+  @media (max-width: 30rem) {
+    .ras a { grid-template-columns: 2.75rem 1fr; }
+    .where { grid-column: 2; }
+  }
+</style>
