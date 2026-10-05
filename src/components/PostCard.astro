@@ -31,8 +31,8 @@ const Heading = single ? 'h1' : 'h2';
       class="cover"
       src={post.data.image}
       alt={post.data.imageAlt}
-      widths={[480, 800, 1280]}
-      sizes="(max-width: 54rem) 100vw, 50rem"
+      widths={[160, 320]}
+      sizes="160px"
       loading={single ? 'eager' : 'lazy'}
     />
   )}
@@ -77,13 +77,14 @@ const Heading = single ? 'h1' : 'h2';
     text-decoration: none;
   }
   .tag:hover { background: var(--accent); color: var(--bg); text-decoration: none; }
+  /* Small illustration under the title, never a full-width banner. */
   .cover {
     display: block;
-    width: 100%;
+    width: auto;
+    max-width: 100%;
     height: auto;
+    max-height: 10rem;
     margin: 0 0 1.25rem;
-    border: 1px solid var(--rule);
-    border-radius: 0.5rem;
   }
   .body > :global(:last-child) { margin-bottom: 0; }
   @media (max-width: 30rem) {
