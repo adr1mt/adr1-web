@@ -1,7 +1,6 @@
 ---
 import { render } from 'astro:content';
 import DocsLayout from '../../layouts/DocsLayout.astro';
-import Toc from '../../components/Toc.astro';
 import CodeBlock from '../../components/CodeBlock.astro';
 import { getRa1Pages, pageUrl, sectionOf, SECTIONS, href, type Ra1Page } from '../../lib/site';
 
@@ -22,10 +21,10 @@ const next = link(pages[i + 1]);
 
 const section = SECTIONS.find((s) => s.id === sectionOf(page))!;
 const breadcrumb = [
-  { label: 'Inici', url: href('/') },
-  { label: 'RA1', url: href('/ra1/') },
+  { label: 'M7', url: href('/') },
+  { label: 'RA1 · Servei DHCP', url: href('/ra1/') },
   { label: section.label, url: `${href('/ra1/')}#${section.id}` },
-  { label: page.data.ref },
+  { label: `${page.data.ref} · ${page.data.title}` },
 ];
 ---
 
@@ -39,11 +38,7 @@ const breadcrumb = [
   prev={prev}
   next={next}
 >
-  <header>
-    <p class="eyebrow">RA1 · {section.label} · {page.data.ref}</p>
-    <h1>{page.data.title}</h1>
-    <p class="lede">{page.data.description}</p>
-  </header>
-  <Toc headings={headings} variant="inline" />
+  <h1>{page.data.title}</h1>
+  <p>{page.data.description}</p>
   <Content components={{ pre: CodeBlock }} />
 </DocsLayout>

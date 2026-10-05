@@ -8,18 +8,16 @@ const ref = (r: string) => pageUrl(pages.find((p) => p.data.ref === r)!);
 ---
 
 <DocsLayout
-  title="RA1 · DHCP"
+  title="RA1 · Servei DHCP"
   description="Adreçament, DHCP, encaminament i NAT."
   pages={pages}
-  breadcrumb={[{ label: 'Inici', url: href('/') }, { label: 'RA1' }]}
+  breadcrumb={[{ label: 'M7', url: href('/') }, { label: 'RA1 · Servei DHCP' }]}
+  headings={SECTIONS.map((s) => ({ depth: 2, slug: s.id, text: s.label }))}
   prev={{ url: href('/'), title: 'Inici' }}
   next={{ url: pageUrl(first), ref: first.data.ref, title: first.data.title }}
 >
-  <header>
-    <p class="eyebrow">Resultat d’aprenentatge 1</p>
-    <h1>Instal·lació de serveis de configuració dinàmica (DHCP)</h1>
-    <p class="lede">Adreçament, DHCP, encaminament i NAT. Tria teoria, guia o activitat segons el que necessitis.</p>
-  </header>
+  <h1>RA1 · Instal·lació de serveis de configuració dinàmica (DHCP)</h1>
+  <p>Adreçament, DHCP, encaminament i NAT. Tria teoria, guia o activitat segons el que necessitis.</p>
 
   <p>
     <a href={ref('A1.1')}>A1.1</a> prepara la base; <a href={ref('A1.2')}>A1.2</a> reaprofita el servidor.
@@ -61,8 +59,7 @@ const ref = (r: string) => pageUrl(pages.find((p) => p.data.ref === r)!);
     text-decoration: none;
     border-radius: var(--radius);
   }
-  .index a:hover { background: var(--bg-soft); }
-  .index a:hover .ttl { text-decoration: underline; }
+  .index a:hover { background: var(--bg-soft); text-decoration: none; }
   .ref { font: 0.875rem/1.6 var(--font-mono); color: var(--muted); grid-row: span 2; padding-top: 0.0625rem; }
   .ttl { font-weight: 600; color: var(--accent); }
   .sub { color: var(--muted); font-size: 0.9375rem; grid-column: 2; }
