@@ -21,25 +21,92 @@ Si busques per Internet, veuràs molta documentació d'`isc-dhcp-server` amb una
 
 Kea es configura amb un fitxer **JSON**, i té un servei separat per a cada feina. A nosaltres només ens cal el d'IPv4: `kea-dhcp4-server`.
 
-## Què has de posar a cada camp
+## Anàlisi del fitxer de configuració
 
-El fitxer és `/etc/kea/kea-dhcp4.conf`. Aquestes són les dades que adaptes al teu escenari:
+El fitxer és `/etc/kea/kea-dhcp4.conf`. Només has de tocar aquests quatre trossos; la resta de camps de l’exemple (temps de concessió, base de dades de concessions, registre) els deixes com estan.
 
-| Camp | Què significa |
-|---|---|
-| `interfaces-config → interfaces` | Nom de la **interfície interna que prestarà DHCP**: aquí `enp2s0`, connectada a `personal1`. Revisa el nom real amb `ip -brief a`; pot canviar segons la VM. |
-| `subnet4 → subnet` | **Adreça de xarxa amb prefix**, aquí `192.168.1.0/24`. No és la IP del servidor (`192.168.1.1`). |
-| `pools → pool` | Rang que es reparteix sense reserva: de `.100` a `.199`, ambdós inclosos (100 IP). Exclou servidor, IP manuals i reserves. |
-| `option-data → routers` | Porta d’enllaç que rebran els clients: `192.168.1.1`. Per sortir a Internet, aquest servidor també necessita encaminament i NAT: [G1.3](../../guies/g1-3-nftables/). |
-| `option-data → domain-name-servers` | DNS que rebran els clients: aquí `9.9.9.9`. |
-| `option-data → domain-name` | Nom de domini comunicat al client: `aula.internal`. Aquesta opció no crea un servidor DNS. |
-| `reservations → hw-address / ip-address` | MAC real del client i IP reservada que rebrà. El client continua configurat per DHCP. |
+### La interfície
 
-## Configuració completa amb reserves
+```json title="interfaces-config"
+"interfaces-config": {
+  "interfaces": [
+    "enp2s0"
+  ],
+  "dhcp-socket-type": "raw"
+},
+```
+
+- `interfaces`: nom de la **interfície interna que prestarà DHCP**, aquí `enp2s0`, connectada a `personal1`.
+- Revisa el nom real amb `ip -brief a`; pot canviar segons la VM.
+
+### La xarxa i el rang
+
+```json title="subnet4"
+"subnet4": [
+  {
+    "id": 1,
+    "subnet": "192.168.1.0/24",
+    ...
+    "pools": [
+      {
+        "pool": "192.168.1.100 - 192.168.1.199"
+      }
+    ],
+```
+
+- `subnet` és l’**adreça de xarxa amb prefix**, `192.168.1.0/24`. No és la IP del servidor (`192.168.1.1`).
+- `pool` és el rang que es reparteix sense reserva: de `.100` a `.199`, ambdós inclosos (100 IP). Exclou servidor, IP manuals i reserves.
+
+### Les opcions per als clients
+
+```json title="option-data"
+"option-data": [
+  {
+    "name": "routers",
+    "data": "192.168.1.1"
+  },
+  {
+    "name": "domain-name-servers",
+    "data": "9.9.9.9"
+  },
+  {
+    "name": "domain-name",
+    "data": "aula.internal"
+  }
+],
+```
+
+- `routers`: porta d’enllaç que rebran els clients, `192.168.1.1`. Per sortir a Internet, aquest servidor també necessita encaminament i NAT: [G1.3](../../guies/g1-3-nftables/).
+- `domain-name-servers`: DNS que rebran els clients, aquí `9.9.9.9`.
+- `domain-name`: nom de domini comunicat al client, `aula.internal`. Aquesta opció no crea un servidor DNS.
+
+### Les reserves
+
+```json title="reservations"
+"reservations": [
+  {
+    "hw-address": "08:00:27:5c:eb:99",
+    "ip-address": "192.168.1.11"
+  },
+  {
+    "hw-address": "08:00:27:2d:8d:a2",
+    "ip-address": "192.168.1.12"
+  }
+]
+```
+
+- `hw-address` és la MAC real del client i `ip-address`, la IP reservada que rebrà. El client continua configurat per DHCP.
+- Les reserves `.11` i `.12` queden fora del rang.
+- Si només necessites una reserva, elimina el segon objecte i la coma que els separa.
+
+## El fitxer complet
 
 Adaptació de l’exemple de [Víctor Cárceler: DHCP con Kea](https://elpuig.xeill.net/Members/vcarceler/articulos/dhcp-con-kea). Manté la xarxa de [G1.1](../../guies/g1-1-netplan/): servidor `192.168.1.1/24`, externa per DHCP i interna fixa.
 
-**Copia el fitxer complet** i substitueix interfície, xarxa, rang, opcions i MAC segons l’activitat. Les MAC són exemples. No incloem l’opció NTP de l’article perquè aquí no hem muntat un servidor d’hora.
+El fitxer que porta el paquet és molt llarg i ple de comentaris. No l’editis: **aparta’l i crea’n un de nou** amb aquest contingut. Només has de canviar les dades dels quatre trossos anteriors. Les MAC són exemples.
+
+<details class="fold">
+<summary>Mostra el fitxer complet</summary>
 
 ```json title="Fitxer JSON · Kea"
 {
@@ -105,22 +172,7 @@ Adaptació de l’exemple de [Víctor Cárceler: DHCP con Kea](https://elpuig.xe
 }
 ```
 
-Les reserves `.11` i `.12` queden fora del rang. Si només necessites una reserva, elimina el segon objecte i la coma que els separa. Conserva les claus i valida abans de reiniciar.
-
-## Temps de concessió i ajustos de l’exemple
-
-| Camp | Què significa |
-|---|---|
-| `valid-lifetime: 4000` | Durada de la concessió en segons: 1 h, 6 min i 40 s. |
-| `renew-timer: 1000` | Als 1.000 s, el client intenta renovar amb el servidor que li va donar la IP. |
-| `rebind-timer: 2000` | Si no ha renovat, als 2.000 s busca qualsevol servidor DHCP disponible. Si arriba als 4.000 s sense renovar, la concessió caduca. |
-| `dhcp-socket-type: raw` | Recepció directa dels paquets DHCP a la interfície indicada, adequada per a clients de la mateixa xarxa. |
-| `lease-database` | `memfile` desa les concessions en un CSV; `lfc-interval: 3600` programa la neteja del fitxer cada hora. |
-| `reservations-global: false` | Les reserves es defineixen dins de cada subxarxa, com a l’exemple. |
-| `reservations-out-of-pool: true` | Indica que **totes les reserves són fora del rang dinàmic**. Si les mous dins del rang, cal canviar aquest ajust a `false`. |
-| `subnet4 → id: 1` | Identificador de la subxarxa dins de Kea. Mantén-lo estable i no el repeteixis si afegeixes subxarxes. |
-| `match-client-id: false` | Kea identifica les concessions per la MAC del paquet, sense usar el client-id. És útil quan les VM clonades comparteixen client-id; les MAC han de ser diferents. |
-| `loggers` | `name: "*"` aplica el nivell a tots els registres. `DEBUG` dona detall per al laboratori; en explotació habitual pots fer servir `INFO`. |
+</details>
 
 ## Muntar el servidor
 
@@ -133,13 +185,13 @@ Punt de partida: la targeta `personal1` ja ha de tenir IP fixa (guia [G1.1](../.
    sudo apt install -y kea-dhcp4-server
    ```
 
-2. **Desa una còpia** de la configuració original abans de tocar res:
+2. **Aparta el fitxer original.** Queda com a còpia per si l’has de consultar:
 
    ```bash title="Terminal"
-   sudo cp /etc/kea/kea-dhcp4.conf /etc/kea/kea-dhcp4.conf.original
+   sudo mv /etc/kea/kea-dhcp4.conf /etc/kea/kea-dhcp4.conf.original
    ```
 
-3. **Edita el fitxer** i deixa'l com el de l'exemple, amb les teves dades:
+3. **Crea el fitxer nou**, enganxa-hi el fitxer complet i canvia les dades:
 
    ```bash title="Terminal"
    sudo nano /etc/kea/kea-dhcp4.conf
@@ -219,7 +271,7 @@ Punt de partida: la targeta `personal1` ja ha de tenir IP fixa (guia [G1.1](../.
 - Una reserva permet gestionar una IP estable des del servidor, sense configurar-la al client.
 - Concessions curtes en xarxes de pas; més llargues per a equips habituals.
 - **Valida sempre abans d'arrencar** amb `sudo -u _kea kea-dhcp4 -t`. Estalvia la meitat dels problemes.
-- **Còpia de l'original.** És la teva marxa enrere si t'hi perds.
+- **Guarda l'original** (`kea-dhcp4.conf.original`). És la teva marxa enrere si t'hi perds.
 - **Escolta només per la targeta interna.** Mai posis la targeta que va a la xarxa del centre a `interfaces`.
 - **Reserves fora del _pool_**, i totes juntes en una zona d'adreces baixes.
 - **Comenta la configuració** amb `//`: Kea ho admet i el teu jo del mes vinent ho agrairà.
@@ -255,23 +307,5 @@ Punt de partida: la targeta `personal1` ja ha de tenir IP fixa (guia [G1.1](../.
 **Causa** Kea ha fet la seva feina. Falta que el servidor encamini el trànsit cap a fora.
 
 **Solució** És el contingut de la guia [G1.3](../../guies/g1-3-nftables/): encaminament i NAT.
-
-## Resum
-
-- **Kea** substitueix `isc-dhcp-server`. La documentació antiga no serveix.
-- Es configura en **JSON** a `/etc/kea/kea-dhcp4.conf`.
-- Quatre blocs a tocar: `interfaces-config`, `subnet`, `pools` i `option-data`.
-- Les **reserves** van dins de la subxarxa; aquí les situem fora del _pool_ per organització.
-- Al comptar adreces d'un rang, **els dos extrems hi entren**.
-
-| Comanda | Per a què serveix |
-|---|---|
-| `apt install kea-dhcp4-server` | Instal·lar el servei |
-| `sudo -u _kea kea-dhcp4 -t <fitxer>` | Validar la configuració |
-| `systemctl restart kea-dhcp4-server` | Aplicar els canvis |
-| `systemctl status kea-dhcp4-server` | Veure si està actiu o l'error |
-| `sudo journalctl -u kea-dhcp4-server -f` | Veure les concessions en directe |
-| `ss -ulnp \| grep :67` | Comprovar que escolta |
-| `cat /var/lib/kea/kea-leases4.csv` | Llista de concessions |
 
 **Continua:** amb la _[G1.3](../../guies/g1-3-nftables/) · nftables_ faràs que els clients del teu servidor tinguin Internet.
