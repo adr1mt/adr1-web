@@ -278,34 +278,4 @@ Punt de partida: la targeta `personal1` ja ha de tenir IP fixa (guia [G1.1](../.
 
 </Callout>
 
-## Errors habituals
-
-### El client s’assigna una IP `169.254.x.x`
-
-És una adreça d’enllaç local, no una concessió de Kea. Revisa la connexió a `personal1`, la interfície on escolta el servei i el seu estat.
-
-### El servei no arrenca
-
-**Causa** Error de JSON (una coma sobrant) o la targeta de `interfaces` no existeix o no té IP.
-
-**Solució** `sudo -u _kea kea-dhcp4 -t /etc/kea/kea-dhcp4.conf` et dona el motiu, la línia i la columna. Si el fitxer és correcte, mira `sudo journalctl -u kea-dhcp4-server -n 30`.
-
-### El servei està actiu però el client no rep res
-
-**Causa** Escolta per la targeta equivocada, o el client està en una xarxa diferent de la del `subnet`.
-
-**Solució** Comprova amb `ss -ulnp | grep :67` i, al servidor, `sudo tcpdump -i enp2s0 -n port 67`. Si no hi arriba el DISCOVER, el problema és de connexió, no de Kea.
-
-### La reserva no s'aplica
-
-**Causa** La MAC està mal escrita, o el client encara té una concessió antiga vàlida.
-
-**Solució** Copia la MAC de la sortida del client, no la transcriguis a mà. Al client, força la renovació amb `sudo networkctl renew enp1s0`.
-
-### El client rep IP però no té Internet
-
-**Causa** Kea ha fet la seva feina. Falta que el servidor encamini el trànsit cap a fora.
-
-**Solució** És el contingut de la guia [G1.3](../../guies/g1-3-nftables/): encaminament i NAT.
-
 **Continua:** amb la _[G1.3](../../guies/g1-3-nftables/) · nftables_ faràs que els clients del teu servidor tinguin Internet.
