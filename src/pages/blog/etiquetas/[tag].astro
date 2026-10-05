@@ -7,11 +7,10 @@ export async function getStaticPaths() {
   const posts = await getPosts();
   const byTag = new Map<string, { name: string; posts: Post[] }>();
   for (const post of posts) {
-    for (const name of post.data.tags) {
-      const slug = tagSlug(name);
-      if (!byTag.has(slug)) byTag.set(slug, { name, posts: [] });
-      byTag.get(slug)!.posts.push(post);
-    }
+    const name = post.data.tag;
+    const slug = tagSlug(name);
+    if (!byTag.has(slug)) byTag.set(slug, { name, posts: [] });
+    byTag.get(slug)!.posts.push(post);
   }
   return [...byTag].map(([tag, { name, posts }]) => ({ params: { tag }, props: { name, posts } }));
 }
@@ -20,11 +19,11 @@ const { tag } = Astro.params;
 const { name, posts } = Astro.props;
 ---
 
-<BlogLayout title={`#${name} · Blog`} currentTag={tag}>
+<BlogLayout title={`${name} · Blog`} currentTag={tag}>
   <header class="intro" slot="intro">
     <p class="eyebrow"><a href={href('/blog/')}>Blog</a></p>
-    <h1 class="page-title">#{name}</h1>
-    <p class="lede">{posts.length} {posts.length === 1 ? 'entrada' : 'entrades'} amb aquesta etiqueta.</p>
+    <h1 class="page-title">{name}</h1>
+    <p class="lede">{posts.length} {posts.length === 1 ? 'entrada' : 'entradas'} con esta etiqueta.</p>
   </header>
   {posts.map((post) => <PostCard post={post} />)}
 </BlogLayout>

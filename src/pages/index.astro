@@ -6,18 +6,18 @@ import { SITE_TITLE, href, getPosts } from '../lib/site';
 const latest = (await getPosts()).slice(0, 3);
 ---
 
-<BaseLayout title={SITE_TITLE} current="inici">
+<BaseLayout title={SITE_TITLE} current="inicio">
   <main id="contingut" class="home" tabindex="-1">
     <header>
       <h1 class="page-title">{SITE_TITLE}</h1>
-      <p class="lede">Web d’Adrià, professor d’informàtica a l’Institut Puig Castellar. Material de classe i recomanacions.</p>
+      <p class="lede">Web de Adrià, profesor de informática en el Institut Puig Castellar. Material de clase y recomendaciones.</p>
     </header>
 
-    <section aria-labelledby="moduls">
-      <h2 id="moduls">Mòduls</h2>
+    <section aria-labelledby="modulos">
+      <h2 id="modulos">Módulos</h2>
       <a class="module" href={href('/serveis-en-xarxa/')}>
-        <span class="module-title">Serveis en Xarxa</span>
-        <span class="module-sub">Mòdul 0227 · CFGM SMX</span>
+        <span class="module-title" lang="ca">Serveis en Xarxa</span>
+        <span class="module-sub" lang="ca">Mòdul 0227 · CFGM SMX</span>
       </a>
     </section>
 
@@ -27,7 +27,7 @@ const latest = (await getPosts()).slice(0, 3);
         <div class="posts">
           {latest.map((post) => <PostCard post={post} />)}
         </div>
-        <p class="all"><a href={href('/blog/')}>Totes les entrades →</a></p>
+        <p class="all"><a href={href('/blog/')}>Todas las entradas →</a></p>
       </section>
     )}
   </main>

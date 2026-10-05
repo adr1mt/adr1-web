@@ -18,7 +18,7 @@ const link = (p?: Post) => p && { url: postUrl(p), title: p.data.title };
 ---
 
 <BlogLayout title={post.data.title} searchable showTags={false}>
-  <p class="back" slot="intro"><a href={href('/blog/')}>← Blog</a></p>
+  <p class="back" slot="intro" data-pagefind-ignore><a href={href('/blog/')}>← Blog</a></p>
   <PostCard post={post} single />
   <PrevNext slot="after" prev={link(older)} next={link(newer)} />
 </BlogLayout>

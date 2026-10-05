@@ -6,10 +6,10 @@ import { getPosts } from '../../lib/site';
 const posts = await getPosts();
 ---
 
-<BlogLayout title="Blog" description="Recomanacions tècniques breus per a l’alumnat de Serveis en Xarxa.">
+<BlogLayout title="Blog" description="Recomendaciones técnicas breves: herramientas, recursos y proyectos.">
   <header class="intro" slot="intro">
     <h1 class="page-title">Blog</h1>
-    <p class="lede">Recomanacions breus: eines, ordres, recursos i bones pràctiques que val la pena conèixer.</p>
+    <p class="lede">Recomendaciones breves: herramientas, órdenes, recursos y buenas prácticas que vale la pena conocer.</p>
   </header>
   {posts.map((post) => <PostCard post={post} />)}
 </BlogLayout>

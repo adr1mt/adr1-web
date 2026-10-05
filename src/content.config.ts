@@ -13,12 +13,15 @@ const ra1 = defineCollection({
   }),
 });
 
+// One tag per post keeps the blog simple. The image, if any, goes under the title.
 const blog = defineCollection({
   loader: glob({ pattern: '*.md', base: './src/content/blog' }),
-  schema: z.object({
+  schema: ({ image }) => z.object({
     title: z.string(),
     date: z.coerce.date(),
-    tags: z.array(z.string()).default([]),
+    tag: z.string(),
+    image: image().optional(),
+    imageAlt: z.string().default(''),
   }),
 });
 

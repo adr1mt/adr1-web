@@ -21,8 +21,8 @@ Barra: Inici (portada personal «adr1») · Serveis en Xarxa (`/serveis-en-xarxa
 - `src/content/ra1/{teoria,guies,activitats}/*.mdx`: el contenido. La carpeta es
   la sección y `ref` (T1.1, G1.2, A1.3) da el orden. Sidebar, índice del RA y
   anterior/siguiente se derivan de la colección (`src/lib/site.ts`); no hay listas a mano.
-- `src/content/blog/AAAA-MM-DD-slug.md`: `title`, `date`, `tags`. La URL es
-  `/blog/<nombre del fichero>/`.
+- `src/content/blog/AAAA-MM-DD-slug.md`: `title`, `date`, `tag` (una sola), `image` e
+  `imageAlt` opcionales (imagen en `src/content/blog/img/`). La URL es `/blog/<nombre del fichero>/`.
 - Componentes MDX del RA1: `Callout` (recordatori, bones pràctiques, nota), `Flow`
   (secuencias como DORA), `Quiz` + `Question` (autoevaluación, solo en teoría).
   Los bloques de código llevan título: ```` ```bash title="Terminal" ````.
@@ -31,7 +31,9 @@ Barra: Inici (portada personal «adr1») · Serveis en Xarxa (`/serveis-en-xarxa
 
 ## Contenido
 
-- Material del alumnado en catalán; código y comentarios en inglés.
+- Idioma: la web (portada, blog, cabecera, pie, búsqueda) en castellano; el módulo
+  (`/serveis-en-xarxa/` y RA1) en catalán, con `lang="ca"`. Código y comentarios en inglés.
+  Pagefind indexa todo como `es` (`--force-language es`) para tener un solo índice.
 - La fuente original del RA1 es el repo privado `adr1mt/m7-serveis-en-xarxa`
   (HTML). En este piloto el MDX es una copia convertida: un cambio allí hay que
   traerlo aquí a mano.

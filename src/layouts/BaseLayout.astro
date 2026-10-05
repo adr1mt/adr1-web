@@ -6,15 +6,17 @@ import { href } from '../lib/site';
 interface Props {
   title: string;
   description?: string;
-  /** Section highlighted in the header ("inici" | "serveis" | "blog"). */
+  /** Section highlighted in the header ("inicio" | "serveis" | "blog"). */
   current?: string;
+  /** The site is in Spanish; the module (Serveis en Xarxa) is taught in Catalan. */
+  lang?: 'es' | 'ca';
 }
 
-const { title, description = 'Web d’Adrià: material de classe i recomanacions.', current } = Astro.props;
+const { title, description = 'Web de Adrià: material de clase y recomendaciones.', current, lang = 'es' } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="ca">
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -36,7 +38,7 @@ const { title, description = 'Web d’Adrià: material de classe i recomanacions
     </script>
   </head>
   <body>
-    <a class="skip-link" href="#contingut">Salta al contingut</a>
+    <a class="skip-link" href="#contingut">Saltar al contenido</a>
     <Header current={current}>
       <slot name="menu" />
     </Header>
