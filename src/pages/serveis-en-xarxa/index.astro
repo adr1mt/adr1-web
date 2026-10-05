@@ -10,7 +10,7 @@ const ras = [
 
 <BaseLayout title="Serveis en Xarxa" description="Material del mòdul 0227 Serveis en Xarxa (CFGM SMX)." current="serveis" lang="ca">
   <main id="contingut" class="module" tabindex="-1">
-    <header>
+    <header class="intro">
       <p class="eyebrow">Mòdul 0227 · CFGM SMX</p>
       <h1 class="page-title">Serveis en Xarxa</h1>
       <p class="lede">Teoria, guies i activitats per instal·lar i configurar els serveis d’una xarxa: DHCP, DNS, FTP, correu, web, accés remot, sense fils i proxy.</p>
@@ -35,6 +35,8 @@ const ras = [
 <style>
   .module { max-width: calc(var(--measure) + 4rem); margin: 0 auto; padding: 3rem var(--gutter) 0; }
   .module:focus { outline: none; }
+  .intro { text-align: center; }
+  .intro .lede { margin-inline: auto; }
   h2 { font-size: 1.375rem; font-weight: 700; margin: 2.5rem 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--rule); }
 
   .ras { list-style: none; margin: 0; padding: 0; }
