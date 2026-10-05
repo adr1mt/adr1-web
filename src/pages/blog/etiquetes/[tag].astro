@@ -1,10 +1,10 @@
 ---
-import MicroblogLayout from '../../../layouts/MicroblogLayout.astro';
-import Micropost from '../../../components/Micropost.astro';
-import { getMicroposts, tagSlug, href, type Micropost as Post } from '../../../lib/site';
+import BlogLayout from '../../../layouts/BlogLayout.astro';
+import PostCard from '../../../components/PostCard.astro';
+import { getPosts, tagSlug, href, type BlogPost as Post } from '../../../lib/site';
 
 export async function getStaticPaths() {
-  const posts = await getMicroposts();
+  const posts = await getPosts();
   const byTag = new Map<string, { name: string; posts: Post[] }>();
   for (const post of posts) {
     for (const name of post.data.tags) {
@@ -20,11 +20,11 @@ const { tag } = Astro.params;
 const { name, posts } = Astro.props;
 ---
 
-<MicroblogLayout title={`#${name} · Microblog`} currentTag={tag}>
-  <header class="intro">
-    <p class="eyebrow"><a href={href('/microblog/')}>Microblog</a></p>
+<BlogLayout title={`#${name} · Blog`} currentTag={tag}>
+  <header class="intro" slot="intro">
+    <p class="eyebrow"><a href={href('/blog/')}>Blog</a></p>
     <h1 class="page-title">#{name}</h1>
     <p class="lede">{posts.length} {posts.length === 1 ? 'entrada' : 'entrades'} amb aquesta etiqueta.</p>
   </header>
-  {posts.map((post) => <Micropost post={post} />)}
-</MicroblogLayout>
+  {posts.map((post) => <PostCard post={post} />)}
+</BlogLayout>

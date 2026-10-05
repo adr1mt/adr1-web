@@ -1,0 +1,60 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { href } from '../../lib/site';
+
+// Only the learning outcomes already migrated to this web are listed.
+const ras = [
+  { n: 1, title: 'Instal·lació de serveis de configuració dinàmica (DHCP)', url: href('/ra1/') },
+];
+---
+
+<BaseLayout title="Serveis en Xarxa" description="Material del mòdul 0227 Serveis en Xarxa (CFGM SMX)." current="serveis">
+  <main id="contingut" class="module" tabindex="-1">
+    <header>
+      <p class="eyebrow">Mòdul 0227 · CFGM SMX</p>
+      <h1 class="page-title">Serveis en Xarxa</h1>
+      <p class="lede">Teoria, guies i activitats per instal·lar i configurar els serveis d’una xarxa: DHCP, DNS, FTP, correu, web, accés remot, sense fils i proxy.</p>
+    </header>
+
+    <section aria-labelledby="ras">
+      <h2 id="ras">Resultats d’aprenentatge</h2>
+      <ol class="ras">
+        {ras.map((ra) => (
+          <li>
+            <a href={ra.url}>
+              <span class="ref">RA{ra.n}</span>
+              <span class="ttl">{ra.title}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </main>
+</BaseLayout>
+
+<style>
+  .module { max-width: calc(var(--measure) + 4rem); margin: 0 auto; padding: 3rem var(--gutter) 0; }
+  .module:focus { outline: none; }
+  h2 { font-size: 1.375rem; font-weight: 700; margin: 2.5rem 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--rule); }
+
+  .ras { list-style: none; margin: 0; padding: 0; }
+  .ras li { border-bottom: 1px solid var(--rule); }
+  .ras a {
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.75rem 0.5rem;
+    margin: 0 -0.5rem;
+    border-radius: var(--radius);
+    text-decoration: none;
+  }
+  .ras a:hover { background: var(--bg-soft); }
+  .ras a:hover .ttl { text-decoration: underline; }
+  .ref { font: 0.875rem var(--font-mono); color: var(--muted); }
+  .ttl { color: var(--accent); font-weight: 600; }
+
+  @media (max-width: 30rem) {
+    .ras a { grid-template-columns: 2.75rem 1fr; }
+  }
+</style>

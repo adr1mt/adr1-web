@@ -21,7 +21,7 @@ const next = link(pages[i + 1]);
 
 const section = SECTIONS.find((s) => s.id === sectionOf(page))!;
 const breadcrumb = [
-  { label: 'M7', url: href('/') },
+  { label: 'Serveis en Xarxa', url: href('/serveis-en-xarxa/') },
   { label: 'RA1 · Servei DHCP', url: href('/ra1/') },
   { label: section.label, url: `${href('/ra1/')}#${section.id}` },
   { label: `${page.data.ref} · ${page.data.title}` },

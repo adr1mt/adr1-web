@@ -1,9 +1,10 @@
 # M7 Serveis en Xarxa · piloto Astro
 
 Nueva versión de la web del módulo 0227 (CFGM SMX). Piloto limitado al **RA1 (DHCP)**,
-un **microblog** de recomendaciones y la infraestructura común. RA2–RA8 siguen en
-la web actual (`https://adr1mt.github.io/m7-serveis-en-xarxa-web/`) y solo se
-enlazan desde la portada; no se migran sin que el usuario lo pida.
+un **blog** de recomendaciones y la infraestructura común. RA2–RA8 siguen en
+la web actual (`https://adr1mt.github.io/m7-serveis-en-xarxa-web/`) y no se
+enlazan ni se mencionan; se migran uno a uno cuando el usuario lo pida.
+Barra: Inici (portada personal «adr1») · Serveis en Xarxa (`/serveis-en-xarxa/`, lista de RA) · Blog.
 
 ## Comandos
 
@@ -11,7 +12,7 @@ enlazan desde la portada; no se migran sin que el usuario lo pida.
 - `npm run build` — `astro build` + índice de Pagefind en `dist/pagefind/`.
 - `npm run preview` — sirve `dist/` en `http://localhost:4321/adr1-web/`.
 - `npm run check` — `astro check`.
-- `npm run new:micro` — crea una entrada del microblog.
+- `npm run new:post` — crea una entrada del blog.
 
 ## Arquitectura
 
@@ -20,8 +21,8 @@ enlazan desde la portada; no se migran sin que el usuario lo pida.
 - `src/content/ra1/{teoria,guies,activitats}/*.mdx`: el contenido. La carpeta es
   la sección y `ref` (T1.1, G1.2, A1.3) da el orden. Sidebar, índice del RA y
   anterior/siguiente se derivan de la colección (`src/lib/site.ts`); no hay listas a mano.
-- `src/content/microblog/AAAA-MM-DD-slug.md`: `title`, `date`, `tags`. La URL es
-  `/microblog/<nombre del fichero>/`.
+- `src/content/blog/AAAA-MM-DD-slug.md`: `title`, `date`, `tags`. La URL es
+  `/blog/<nombre del fichero>/`.
 - Componentes MDX del RA1: `Callout` (recordatori, bones pràctiques, nota), `Flow`
   (secuencias como DORA), `Quiz` + `Question` (autoevaluación, solo en teoría).
   Los bloques de código llevan título: ```` ```bash title="Terminal" ````.

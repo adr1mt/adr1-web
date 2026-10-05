@@ -1,11 +1,11 @@
 ---
-import MicroblogLayout from '../../layouts/MicroblogLayout.astro';
-import Micropost from '../../components/Micropost.astro';
+import BlogLayout from '../../layouts/BlogLayout.astro';
+import PostCard from '../../components/PostCard.astro';
 import PrevNext from '../../components/PrevNext.astro';
-import { getMicroposts, postUrl, href, type Micropost as Post } from '../../lib/site';
+import { getPosts, postUrl, href, type BlogPost as Post } from '../../lib/site';
 
 export async function getStaticPaths() {
-  const posts = await getMicroposts();
+  const posts = await getPosts();
   return posts.map((post, i) => ({
     params: { id: post.id },
     props: { post, newer: posts[i - 1], older: posts[i + 1] },
@@ -17,11 +17,11 @@ const { post, newer, older } = Astro.props;
 const link = (p?: Post) => p && { url: postUrl(p), title: p.data.title };
 ---
 
-<MicroblogLayout title={post.data.title} searchable>
-  <p class="back"><a href={href('/microblog/')}>← Microblog</a></p>
-  <Micropost post={post} single />
-  <PrevNext prev={link(older)} next={link(newer)} />
-</MicroblogLayout>
+<BlogLayout title={post.data.title} searchable showTags={false}>
+  <p class="back" slot="intro"><a href={href('/blog/')}>← Blog</a></p>
+  <PostCard post={post} single />
+  <PrevNext slot="after" prev={link(older)} next={link(newer)} />
+</BlogLayout>
 
 <style>
   .back { margin: 0 0 1.5rem; font-size: 0.9375rem; }

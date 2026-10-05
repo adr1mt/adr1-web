@@ -13,8 +13,8 @@ const ra1 = defineCollection({
   }),
 });
 
-const microblog = defineCollection({
-  loader: glob({ pattern: '*.md', base: './src/content/microblog' }),
+const blog = defineCollection({
+  loader: glob({ pattern: '*.md', base: './src/content/blog' }),
   schema: z.object({
     title: z.string(),
     date: z.coerce.date(),
@@ -22,4 +22,4 @@ const microblog = defineCollection({
   }),
 });
 
-export const collections = { ra1, microblog };
+export const collections = { ra1, blog };
