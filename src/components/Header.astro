@@ -1,5 +1,5 @@
 ---
-import { SITE_TITLE, href } from '../lib/site';
+import { href } from '../lib/site';
 
 interface Props {
   current?: string;
@@ -16,11 +16,6 @@ const links = [
 
 <header class="site-header" data-pagefind-ignore="all">
   <div class="bar">
-    <a class="brand" href={href('/')}>
-      <img src={href('/logo.png')} alt="" width="32" height="32" />
-      <span>{SITE_TITLE}</span>
-    </a>
-
     <nav class="main-nav" aria-label="Secciones">
       {links.map((l) => (
         <a href={l.url} aria-current={current === l.id ? 'page' : undefined}>{l.label}</a>
@@ -152,18 +147,6 @@ const links = [
     padding: 0 1.5rem;
   }
 
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-shrink: 0;
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: var(--accent-high);
-    text-decoration: none;
-  }
-  .brand:hover { color: var(--accent-high); text-decoration: none; }
-
   .main-nav { display: flex; flex: 1; justify-content: center; gap: 1.5rem; margin: 0 1rem; }
   .main-nav a, .menu-sections a {
     font-size: 0.95rem;
@@ -175,7 +158,7 @@ const links = [
   .main-nav a:hover, .menu-sections a:hover,
   .main-nav a[aria-current='page'], .menu-sections a[aria-current='page'] { color: var(--accent-high); text-decoration: none; }
 
-  .tools { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; }
+  .tools { display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0; margin-left: auto; }
   .tools button, .menu-head button {
     display: flex;
     align-items: center;
@@ -202,10 +185,6 @@ const links = [
   @media (max-width: 30rem) {
     .bar { padding: 0 1rem; }
     .tools { gap: 0.5rem; }
-  }
-  @media (max-width: 24rem) {
-    .brand { font-size: 1.15rem; }
-    .brand img { width: 26px; height: 26px; }
   }
 
   /* Mobile menu: a panel under the header, like the reference dropdown. */
