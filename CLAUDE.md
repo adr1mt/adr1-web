@@ -1,10 +1,10 @@
-# M7 Serveis en Xarxa · piloto Astro
+# M7 Serveis de xarxa · piloto Astro
 
 Nueva versión de la web del módulo 0227 (CFGM SMX). Piloto limitado al **RA1 (DHCP)**,
 un **blog** de recomendaciones y la infraestructura común. RA2–RA8 siguen en
 la web actual (`https://adr1mt.github.io/m7-serveis-en-xarxa-web/`) y no se
 enlazan ni se mencionan; se migran uno a uno cuando el usuario lo pida.
-Barra: Inici (portada personal «adr1») · Serveis en Xarxa (`/serveis-en-xarxa/`, lista de RA) · Blog ·
+Barra: Inici (portada personal «adr1») · Serveis de xarxa (`/serveis-en-xarxa/`, lista de RA) · Blog ·
 Herramientas (`/herramientas/`, utilidades en el navegador; de momento IPCalc).
 
 ## Comandos

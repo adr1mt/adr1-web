@@ -13,7 +13,7 @@ const latest = (await getPosts()).slice(0, 3);
     <section aria-labelledby="modulos">
       <h2 id="modulos" class="label">Módulos</h2>
       <a class="module" href={href('/serveis-en-xarxa/')}>
-        <span class="module-title" lang="ca">Serveis en Xarxa</span>
+        <span class="module-title" lang="ca">Serveis de xarxa</span>
         <span class="module-sub" lang="ca">Mòdul 0227 · CFGM SMX</span>
       </a>
     </section>
@@ -57,7 +57,7 @@ const latest = (await getPosts()).slice(0, 3);
     font-weight: 600;
   }
 
-  /* Same card as the blog posts: the border lights up on hover. */
+  /* Same blue as the section pill; the border lights up on hover. */
   .module {
     display: flex;
     flex-direction: column;
@@ -66,14 +66,14 @@ const latest = (await getPosts()).slice(0, 3);
     margin: 0 auto;
     text-align: center;
     padding: 1.25rem;
-    background: var(--bg-nav);
-    border: 1px solid var(--rule);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-soft);
     border-radius: 0.75rem;
     text-decoration: none;
     transition: border-color 0.2s;
   }
   .module:hover { border-color: var(--accent); text-decoration: none; }
-  .module-title { font-size: 1.125rem; font-weight: 700; color: var(--ink); }
+  .module-title { font-size: 1.125rem; font-weight: 700; color: var(--accent-high); }
   .module-sub { font-size: 0.875rem; color: var(--muted); }
 
   /* Latest posts: small cards with only logo, title and date. */
