@@ -131,7 +131,7 @@ Si configures la xarxa per SSH, un error et pot tallar la connexió i deixar-te 
    sudo nano /etc/netplan/90-xarxa.yaml
    ```
 
-   Enganxa el fitxer complet. L’externa es manté per DHCP; només assignes manualment la IP interna. A [A1.2](../../activitats/a1-2-dhcp-systemd-networkd/) i [A1.3](../../activitats/a1-3-dhcp-kea/) la interna serà `10.0.0.1/8`; a [A1.4](../../activitats/a1-4-kea-escala-reserves/), una IP de `172.16.0.0/16`.
+   Enganxa el fitxer complet. L’externa es manté per DHCP; només assignes manualment la IP interna. A [A1.2](../../activitats/a1-2-dhcp-kea/) i [A1.4](../../activitats/a1-4-dhcp-systemd-networkd/) la interna serà `10.0.0.1/8`; a [A1.3](../../activitats/a1-3-kea-escala-reserves/), una IP de `172.16.0.0/16`.
 
 3. **Posa-hi els permisos correctes.** Si no ho fas, Netplan et renyarà cada vegada:
 

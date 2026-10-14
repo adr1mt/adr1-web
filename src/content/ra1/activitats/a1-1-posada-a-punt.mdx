@@ -15,7 +15,7 @@ Una màquina virtual **Ubuntu Server nova** a **isardVDI** amb dues targetes de 
 
 Els noms típics són orientatius: comprova sempre com es diuen a la teva màquina abans d'escriure res. Connecta-t'hi per **SSH** des del teu equip.
 
-Conserva aquest servidor per a [A1.2](../../activitats/a1-2-dhcp-systemd-networkd/). En acabar A1.1, guarda també una còpia o instantània de la base preparada, abans d’instal·lar serveis o canviar la gestió de xarxa. Et servirà per començar altres pràctiques sense repetir la posada a punt.
+Conserva aquest servidor per a [A1.2](../../activitats/a1-2-dhcp-kea/).
 
 ## Què has de fer
 
@@ -27,7 +27,6 @@ Consulta la [G1.1](../../guies/g1-1-netplan/) per a la xarxa.
 4. Desactiva les actualitzacions automàtiques només durant la pràctica, per mantenir un estat reproduïble.
 5. Configura l’externa `puigcastellar1` per DHCP i la interna `personal1` amb `192.168.1.1/24` i DNS `9.9.9.9`. Comprova els noms reals de les targetes. Aplica els canvis amb reversió des de SSH.
 6. Comprova les adreces, la ruta per defecte per l’externa i la resolució DNS. No posis cap porta d’enllaç a la interna.
-7. Guarda una còpia o instantània de la base abans d’instal·lar serveis.
 
 ## Què has d’entregar
 
@@ -35,7 +34,7 @@ Entrega un document breu amb les dades del servidor i captures de:
 
 - Actualització completada, _hostname_, zona horària i estat de les actualitzacions automàtiques.
 - Configuració de Netplan, IP de les targetes, ruta per defecte i resolució d’un nom.
-- Reentrada per SSH i còpia o instantània de la base preparada.
+- Reentrada per SSH.
 
 Justifica per què `personal1` no té porta d’enllaç. En explotació, les actualitzacions de seguretat necessiten un responsable i un calendari.
 
