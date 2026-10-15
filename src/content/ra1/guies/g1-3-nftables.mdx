@@ -10,18 +10,21 @@ import Callout from "../../../components/Callout.astro";
 
 Documentació oficial: [wiki.nftables.org](https://wiki.nftables.org)
 
-- Punt de partida: el servidor ja reparteix adreces per la targeta interna.
-- Les regles viuen a `/etc/nftables.conf` i les carrega el servei `nftables`.
+Les regles viuen a `/etc/nftables.conf` i les carrega el servei `nftables`. A Internet trobaràs sobretot `iptables`: encara funciona, però avui és una capa de compatibilitat sobre `nftables`. **No barregis els dos**: tria `nftables` i queda-t'hi.
 
-## Per què no fem servir iptables
+## L'escenari d'exemple
 
-Tota la documentació d'Internet parla d'`iptables`, amb comandes com `iptables -t nat -A POSTROUTING -o enp1s0 -j MASQUERADE`. Encara funcionen, però és una capa de compatibilitat: per sota, avui, hi ha `nftables`.
+Continuem amb el servidor de [G1.2](../../guies/g1-2-kea/), que ja reparteix adreces. **Són dades d'exemple**: a cada activitat tindràs les teves.
 
-`nftables` és el sistema de tallafoc de Linux des de fa anys i el que trobaràs a qualsevol servidor nou. Té una sintaxi unificada i les regles es desen en un fitxer que pots llegir i versionar.
+- `enp1s0`, connectada a **puigcastellar1**: la sortida a Internet.
+- `enp2s0`, connectada a **personal1**: la xarxa `192.168.1.0/24` dels clients, amb el servidor a `192.168.1.1` com a porta d'enllaç.
 
-**No barregis els dos.** Si escrius regles amb `iptables` i les consultes amb `nft list ruleset` les veuràs traduïdes, i al revés no. Tria un i queda-t'hi.
+Els clients ja tenen IP, però no surten a Internet. El servidor ha de deixar passar els seus paquets d'`enp2s0` a `enp1s0` (encaminament) i canviar-ne l'origen per la seva adreça externa (NAT).
 
-## Una regla mal escrita et tanca la porta
+## 1. Convertir el servidor en porta d'enllaç
+
+<details class="fold">
+<summary>Mostra els passos</summary>
 
 <Callout kind="recordatori">
 
@@ -29,7 +32,67 @@ Estàs escrivint un tallafoc. Si poses `policy drop` a la cadena `input` sense p
 
 </Callout>
 
-## Anàlisi del fitxer de configuració
+1. **Mira com està ara** l'encaminament:
+
+   ```bash title="Terminal"
+   cat /proc/sys/net/ipv4/ip_forward
+   ```
+
+   Sortirà `0`.
+
+2. **Activa'l de manera permanent** amb un fitxer propi, que és més net que tocar el fitxer general:
+
+   ```bash title="Terminal"
+   echo "net.ipv4.ip_forward=1" | sudo tee /etc/sysctl.d/99-encaminament.conf
+   sudo sysctl --system
+   ```
+
+   Torna a comprovar-ho: ara ha de sortir `1`. I sobreviurà a un reinici.
+
+3. **Escriu les regles**: enganxa-hi el fitxer complet de l'apartat 2, amb els noms de les teves targetes:
+
+   ```bash title="Terminal"
+   sudo nano /etc/nftables.conf
+   ```
+
+4. **Comprova la sintaxi** sense aplicar res:
+
+   ```bash title="Terminal"
+   sudo nft -c -f /etc/nftables.conf
+   ```
+
+5. **Activa el servei** perquè carregui les regles ara i a cada arrencada:
+
+   ```bash title="Terminal"
+   sudo systemctl enable --now nftables
+   ```
+
+   <Callout kind="nota">
+
+   **Compte** `enable --now` fa les dues coses alhora. No facis `enable & start` amb un sol `&`: això envia la primera comanda a segon pla i sembla que funciona quan no ho ha fet.
+
+   </Callout>
+
+6. **Comprova que les regles s'han carregat:**
+
+   ```bash title="Terminal"
+   sudo nft list ruleset
+   ```
+
+   Hi han de sortir les regles del fitxer, amb la regla `masquerade` a la taula de NAT. Si surt buit, comprova `systemctl status nftables` i `sudo journalctl -u nftables` per trobar l'error.
+
+<Callout kind="nota">
+
+**Ubuntu 26.04** Al `nft list ruleset` les prioritats no surten com les has escrit: on tu poses `priority 0` hi llegiràs `priority filter`, i on poses `priority 100`, `priority srcnat`. Són els noms dels mateixos números: la regla s'ha carregat bé.
+
+</Callout>
+
+</details>
+
+## 2. Anàlisi del fitxer de configuració
+
+<details class="fold">
+<summary>Mostra l'anàlisi</summary>
 
 Les regles viuen a `/etc/nftables.conf`. Té dues taules: `filter` decideix què pot passar i `nat` canvia les adreces.
 
@@ -81,12 +144,9 @@ table ip nat {
 
 - `masquerade` canvia l'adreça d'origen dels clients per la de la targeta externa del servidor.
 
-## El fitxer complet
+### El fitxer complet
 
-És el fitxer sencer amb els tres trossos anteriors. Canvia els noms de les targetes pels teus.
-
-<details class="fold">
-<summary>Mostra el fitxer complet</summary>
+És el fitxer sencer amb els tres trossos anteriors.
 
 ```text title="Regles · nftables"
 #!/usr/sbin/nft -f
@@ -124,63 +184,6 @@ table ip nat {
 
 </details>
 
-## Convertir el servidor en porta d'enllaç
-
-1. **Mira com està ara** l'encaminament:
-
-   ```bash title="Terminal"
-   cat /proc/sys/net/ipv4/ip_forward
-   ```
-
-   Sortirà `0`.
-
-2. **Activa'l de manera permanent** amb un fitxer propi, que és més net que tocar el fitxer general:
-
-   ```bash title="Terminal"
-   echo "net.ipv4.ip_forward=1" | sudo tee /etc/sysctl.d/99-encaminament.conf
-   sudo sysctl --system
-   ```
-
-   Torna a comprovar-ho: ara ha de sortir `1`. I sobreviurà a un reinici.
-
-3. **Escriu les regles**, enganxa-hi el fitxer complet i canvia els noms de les targetes:
-
-   ```bash title="Terminal"
-   sudo nano /etc/nftables.conf
-   ```
-
-4. **Comprova la sintaxi** sense aplicar res:
-
-   ```bash title="Terminal"
-   sudo nft -c -f /etc/nftables.conf
-   ```
-
-5. **Activa el servei** perquè carregui les regles ara i a cada arrencada:
-
-   ```bash title="Terminal"
-   sudo systemctl enable --now nftables
-   ```
-
-   <Callout kind="nota">
-
-   **Compte** `enable --now` fa les dues coses alhora. No facis `enable & start` amb un sol `&`: això envia la primera comanda a segon pla i sembla que funciona quan no ho ha fet.
-
-   </Callout>
-
-6. **Comprova que les regles s'han carregat:**
-
-   ```bash title="Terminal"
-   sudo nft list ruleset
-   ```
-
-   Hi han de sortir les regles del fitxer, amb la regla `masquerade` a la taula de NAT. Si surt buit, comprova `systemctl status nftables` i `sudo journalctl -u nftables` per trobar l'error.
-
-<Callout kind="nota">
-
-**Ubuntu 26.04** Al `nft list ruleset` les prioritats no surten com les has escrit: on tu poses `priority 0` hi llegiràs `priority filter`, i on poses `priority 100`, `priority srcnat`. Són els noms dels mateixos números: la regla s'ha carregat bé.
-
-</Callout>
-
 ## Comprovar que els clients surten a Internet
 
 Prova-ho des del client, per capes, en aquest ordre:
@@ -188,13 +191,16 @@ Prova-ho des del client, per capes, en aquest ordre:
 ```bash title="Terminal"
 ip route              # la porta d'enllaç és el servidor?
 ping -c3 192.168.1.1  # arribo al servidor?
-ping -c3 9.9.9.9      # surto a Internet?
+ping -c3 1.1.1.1      # surto a Internet?
 ping -c3 www.upc.edu  # funciona el DNS?
 ```
 
 La gràcia és l'ordre: la primera que falli et diu exactament on és el problema. Si la IP va i el nom no, comprova si el nom es resol abans de concloure que falla DNS.
 
 ## Publicar cap a fora un servei de la xarxa interna
+
+<details class="fold">
+<summary>Mostra els passos</summary>
 
 `dnat to` reescriu l'adreça (i el port, si cal) de destinació d'un paquet abans que el nucli decideixi cap a on l'encamina. Per això viu al ganxo `prerouting`, amb la prioritat `dstnat`. Canviar la destinació no obre pas tot sol: amb `policy drop` a `forward`, cal una regla que ho permeti.
 
@@ -229,6 +235,8 @@ La gràcia és l'ordre: la primera que falli et diu exactament on és el problem
    ```
 
    Ha de respondre el servei que corre a `192.168.1.10`, tot i que el client només coneix l'adreça externa del servidor.
+
+</details>
 
 ## Criteris professionals
 

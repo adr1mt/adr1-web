@@ -15,7 +15,7 @@ description: "Muntar un DHCP de laboratori sense instal·lar absolutament res."
 
 ## Què has de fer
 
-Consulta la [G1.1](../../guies/g1-1-netplan/) per entendre la relació entre Netplan i networkd; per al servidor integrat, la guia [G1.4](../../guies/g1-4-systemd-networkd/).
+Consulta la [G1.1](../../guies/g1-1-netplan/) per entendre la relació entre Netplan i networkd; per al servidor integrat, la guia [G1.4](../../guies/g1-4-systemd-networkd/). Les guies fan servir dades d'exemple: posa-hi les d'aquest enunciat.
 
 1. Aparta la configuració de Netplan perquè no competeixi amb els fitxers de networkd.
 2. Configura les targetes amb `systemd-networkd`: externa per DHCP i interna `personal1` amb `10.0.0.1/8`. Comprova els noms reals abans d’escriure els fitxers.
