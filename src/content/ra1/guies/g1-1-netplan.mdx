@@ -18,14 +18,7 @@ Documentació oficial: [netplan.readthedocs.io](https://netplan.readthedocs.io)
 
 A Ubuntu Server la xarxa es configura amb **Netplan**. Tu escrius un fitxer **YAML** a `/etc/netplan/` i Netplan tradueix aquestes instruccions al programa que realment gestiona la xarxa, que a Ubuntu Server és **systemd-networkd**.
 
-Quan executes `netplan apply`, genera fitxers `.network` dins de `/run/systemd/network/` i qui els llegeix és systemd-networkd. Pots veure'ls tu mateix:
-
-```bash title="Terminal"
-ls /run/systemd/network/
-sudo cat /run/systemd/network/*enp2s0*
-```
-
-Això importa perquè **Netplan no ho sap fer tot**. Muntar un servidor DHCP, per exemple, no està entre les seves opcions. En aquests casos s'aparta Netplan i s'escriuen els `.network` directament — és el que faràs a [G1.4](../../guies/g1-4-systemd-networkd/).
+Quan executes `netplan apply`, genera fitxers `.network` dins de `/run/systemd/network/` i qui els llegeix és systemd-networkd.
 
 ## L'escenari d'exemple
 
@@ -61,7 +54,7 @@ Si configures la xarxa per SSH, un error et pot tallar la connexió i deixar-te 
    ip -c link show
    ```
 
-   A IsardVDI, la primera sol ser `enp1s0` (_puigcastellar1_) i la segona `enp2s0` (_personal1_). No ho donis per fet: comprova-ho.
+   A IsardVDI, els noms depenen de l'ordre en què s'han afegit les xarxes a l'escriptori. Aquí hem posat primer _puigcastellar1_ i després _personal1_, i per això surten com a `enp1s0` i `enp2s0`. Si les afegeixes en un altre ordre, els noms canvien: comprova-ho.
 
 2. **Mira quin fitxer ja hi ha**, per saber què hi ha configurat. No el toquis:
 
