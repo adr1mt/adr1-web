@@ -27,9 +27,86 @@ sudo cat /run/systemd/network/*enp2s0*
 
 Això importa perquè **Netplan no ho sap fer tot**. Muntar un servidor DHCP, per exemple, no està entre les seves opcions. En aquests casos s'aparta Netplan i s'escriuen els `.network` directament — és el que faràs a l'activitat 2.
 
-## Anàlisi del fitxer de configuració
+## L'escenari d'exemple
 
-Els fitxers es llegeixen per ordre alfabètic, per això se'ls posa un número al davant: `90-xarxa.yaml`. El nom concret és igual, però l'extensió ha de ser `.yaml`.
+Tota la guia parteix d'aquest cas. **Són dades d'exemple**: a cada activitat tindràs una xarxa i una IP diferents, i són les que has de posar al teu fitxer.
+
+Tinc un Ubuntu Server a IsardVDI amb dues targetes:
+
+- `enp1s0`, connectada a **puigcastellar1**, en automàtic (DHCP). Rep l'adreça, la ruta per defecte i el DNS del DHCP del centre: és la sortida a Internet.
+- `enp2s0`, connectada a **personal1**, amb IP fixa. Aquí munto la meva xarxa: els clients als quals donaré servei amb [G1.2](../../guies/g1-2-kea/).
+
+| Dada | Valor |
+| --- | --- |
+| IP fixa de `enp2s0` | `192.168.1.1/24` |
+| DNS del servidor | `1.1.1.1` (Cloudflare) |
+| Fitxer | `/etc/netplan/90-xarxa.yaml` |
+
+**No editem el fitxer que ja hi ha a `/etc/netplan/`.** En creem un de propi, `90-xarxa.yaml`, amb **les dues targetes**. Els motius són a l'apartat 2.
+
+## 1. Configurar les dues targetes
+
+<details class="fold">
+<summary>Mostra els passos</summary>
+
+<Callout kind="recordatori">
+
+Si configures la xarxa per SSH, un error et pot tallar la connexió i deixar-te fora sense manera de tornar a entrar. Fes servir sempre `sudo netplan try`: aplica els canvis temporalment i, si en 120 segons no confirmes prement Enter, els desfà sols i et retorna la connexió.
+
+</Callout>
+
+1. **Mira quines targetes tens** i com es diuen:
+
+   ```bash title="Terminal"
+   ip -c link show
+   ```
+
+   A IsardVDI, la primera sol ser `enp1s0` (_puigcastellar1_) i la segona `enp2s0` (_personal1_). No ho donis per fet: comprova-ho.
+
+2. **Mira quin fitxer ja hi ha**, per saber què hi ha configurat. No el toquis:
+
+   ```bash title="Terminal"
+   ls /etc/netplan/
+   ```
+
+3. **Crea el teu fitxer** de Netplan:
+
+   ```bash title="Terminal"
+   sudo nano /etc/netplan/90-xarxa.yaml
+   ```
+
+   Enganxa el fitxer complet de l'apartat 2, amb les dades del teu cas: les dues targetes, l'externa per DHCP i la interna amb IP fixa.
+
+4. **Posa-hi els permisos correctes.** Si no ho fas, Netplan et renyarà cada vegada:
+
+   ```bash title="Terminal"
+   sudo chmod 600 /etc/netplan/90-xarxa.yaml
+   ```
+
+5. **Comprova la sintaxi i aplica** amb la xarxa de seguretat:
+
+   ```bash title="Terminal"
+   sudo netplan try
+   ```
+
+   Si hi ha un error de sintaxi, t'ho dirà i no aplicarà res. Si tot va bé, prem Enter per confirmar.
+
+</details>
+
+## 2. Anàlisi del fitxer de configuració
+
+<details class="fold">
+<summary>Mostra l'anàlisi</summary>
+
+Els valors són els de l'escenari d'exemple.
+
+### El nom del fitxer
+
+Netplan llegeix **tots** els fitxers de `/etc/netplan/` per ordre alfabètic, per això se'ls posa un número al davant. El que ja hi ha depèn de la instal·lació: `00-installer-config.yaml` (Ubuntu Server), `01-network-manager-all.yaml` (escriptori) o `50-cloud-init.yaml` (núvol).
+
+El que va **després** afegeix claus noves o substitueix les que ja hi eren. Per això el nostre és `90-xarxa.yaml`: es llegeix l'últim i mana, i l'original queda intacte. L'extensió ha de ser `.yaml`.
+
+Compte: les llistes, com `addresses`, no se substitueixen, s'acumulen. Si el fitxer del sistema ja dona una IP a `enp2s0`, la targeta acabarà amb totes dues. Mira com ha quedat la barreja amb `sudo netplan get`.
 
 ### La capçalera
 
@@ -60,7 +137,7 @@ enp2s0:              # personal1 — fixa
   addresses:
     - 192.168.1.1/24
   nameservers:
-    addresses: [9.9.9.9]
+    addresses: [1.1.1.1]
 ```
 
 - `addresses`: la IP fixa amb el prefix.
@@ -79,11 +156,11 @@ Si en algun cas l'has d'escriure a mà, la sintaxi actual és aquesta. La forma 
           via: 192.168.1.254
 ```
 
-## El fitxer complet
+### El fitxer complet
 
-`enp1s0` per DHCP i `enp2s0` amb IP fixa. És exactament l'escenari de partida d’[A1.1](../../activitats/a1-1-posada-a-punt/). **Comprova les interfícies reals i el Netplan existent de la teva VM**: `enp1s0` i `enp2s0` són els noms habituals a IsardVDI, però poden canviar.
+**Comprova les interfícies reals de la teva VM**: `enp1s0` i `enp2s0` són els noms habituals a IsardVDI, però poden canviar.
 
-```yaml title="Fitxer YAML · Netplan"
+```yaml title="/etc/netplan/90-xarxa.yaml"
 network:
   version: 2
   renderer: networkd
@@ -96,56 +173,12 @@ network:
       addresses:
         - 192.168.1.1/24
       nameservers:
-        addresses: [9.9.9.9]
+        addresses: [1.1.1.1]
 ```
 
 Tres coses del YAML que has de vigilar: la **indentació és amb espais** (mai tabuladors), cada nivell són **2 espais** més, i els dos punts van **enganxats** a la paraula.
 
-### Si a /etc/netplan/ ja hi ha un fitxer
-
-El nom depèn de la instal·lació: `00-installer-config.yaml` (Ubuntu Server), `01-network-manager-all.yaml` (escriptori) o `50-cloud-init.yaml` (núvol).
-
-Netplan els llegeix **tots** per ordre alfabètic: el que va **després** afegeix claus noves o substitueix les que ja hi eren. Les llistes, com `addresses`, no se substitueixen: s'acumulen, i la targeta acaba amb totes dues adreces.
-
-Per això no editis el fitxer del sistema: **afegeix-ne un de propi amb un número alt**, `90-xarxa.yaml`. El teu mana i l'original queda intacte. Mira com ha quedat la barreja amb `sudo netplan get`.
-
-## Configurar les dues targetes
-
-<Callout kind="recordatori">
-
-Si configures la xarxa per SSH, un error et pot tallar la connexió i deixar-te fora sense manera de tornar a entrar. Fes servir sempre `sudo netplan try`: aplica els canvis temporalment i, si en 120 segons no confirmes prement Enter, els desfà sols i et retorna la connexió.
-
-</Callout>
-
-1. **Mira quines targetes tens** i com es diuen:
-
-   ```bash title="Terminal"
-   ip -c link show
-   ```
-
-   A IsardVDI, la primera sol ser `enp1s0` (_puigcastellar1_) i la segona `enp2s0` (_personal1_). No ho donis per fet: comprova-ho.
-
-2. **Crea el teu fitxer** de Netplan:
-
-   ```bash title="Terminal"
-   sudo nano /etc/netplan/90-xarxa.yaml
-   ```
-
-   Enganxa el fitxer complet. L’externa es manté per DHCP; només assignes manualment la IP interna. A [A1.2](../../activitats/a1-2-dhcp-kea/) i [A1.4](../../activitats/a1-4-dhcp-systemd-networkd/) la interna serà `10.0.0.1/8`; a [A1.3](../../activitats/a1-3-kea-escala-reserves/), una IP de `172.16.0.0/16`.
-
-3. **Posa-hi els permisos correctes.** Si no ho fas, Netplan et renyarà cada vegada:
-
-   ```bash title="Terminal"
-   sudo chmod 600 /etc/netplan/90-xarxa.yaml
-   ```
-
-4. **Comprova la sintaxi i aplica** amb la xarxa de seguretat:
-
-   ```bash title="Terminal"
-   sudo netplan try
-   ```
-
-   Si hi ha un error de sintaxi, t'ho dirà i no aplicarà res. Si tot va bé, prem Enter per confirmar.
+</details>
 
 ## Comprovar que la xarxa ha quedat com volies
 

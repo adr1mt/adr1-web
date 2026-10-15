@@ -27,9 +27,12 @@ const items = headings.filter((h) => h.depth === 2 || h.depth === 3);
     const mark = () => {
       const line = window.innerHeight * 0.3;
       let current = -1;
-      targets.forEach((t, i) => { if (t && t.getBoundingClientRect().top < line) current = i; });
+      // Headings inside a closed <details> have no box and are skipped.
+      targets.forEach((t, i) => { if (t && t.getClientRects().length && t.getBoundingClientRect().top < line) current = i; });
       links.forEach((a, i) => a.toggleAttribute('data-active', i === current));
     };
+    // Opens the folded section that holds the heading before jumping to it.
+    links.forEach((a, i) => a.addEventListener('click', () => targets[i]?.closest('details')?.setAttribute('open', '')));
     addEventListener('scroll', mark, { passive: true });
     mark();
   }
