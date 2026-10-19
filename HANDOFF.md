@@ -16,19 +16,20 @@ se copia a mano. RA2–RA8 no tienen web pública hasta que se migren.
   usa los colores de impresión de `sinapsi.css` (contraste ≥ 5,8:1); el oscuro
   usa los de catppuccin-mocha (≥ 7,8:1). Negrita en `global.css`.
 - A1.1 enlaza a G1.0 y G1.1, como en el HTML.
-- `CLAUDE.md`: RA2–RA8 ya no remiten a `m7-serveis-en-xarxa-web` (borrado).
+- Ninguna página enlaza a otros RA (aún no revisados para esta web); el texto
+  puede nombrarlos. Quitado el enlace de T1.2 a la web borrada.
+- El orden de actividades bueno es el de esta web (A1.2 Kea, A1.3 empresa de
+  2000 equips, A1.4 systemd-networkd), aunque el repo privado lo tenga distinto.
+  Regla recogida en `CLAUDE.md`.
 - Verificado: `npm run check` (0 errores), `npm run build`, preview a 320 px
   en tema claro y oscuro, sin scroll horizontal de página.
 - Commit y push a `main` hechos; GitHub Actions despliega.
 
 ## Siguiente paso
 
-1. Comprobar G1.0 en la web desplegada cuando acabe GitHub Actions.
-2. Enlace roto: `t1-2-encaminament-nat.mdx` apunta a RA2 en la web borrada
-   (`m7-serveis-en-xarxa-web/RA2/`). Quitar el enlace y dejar el texto.
-3. Revisar el orden de actividades: en el privado son `a1-2-dhcp-systemd-networkd`,
-   `a1-3-dhcp-kea`, `a1-4-kea-escala-reserves`; aquí `a1-2-dhcp-kea`,
-   `a1-3-kea-escala-reserves`, `a1-4-dhcp-systemd-networkd`.
+1. Comprobar G1.0 y T1.2 en la web desplegada cuando acabe GitHub Actions.
+2. Al portar cambios del repo privado, cruzar las actividades por contenido,
+   no por número de fichero.
 
 ## Diferencias conscientes con el HTML de G1.0
 

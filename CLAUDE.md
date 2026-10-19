@@ -3,7 +3,9 @@
 Nueva versión de la web del módulo 0227 (CFGM SMX). Piloto limitado al **RA1 (DHCP)**,
 un **blog** de recomendaciones y la infraestructura común. RA2–RA8 no tienen
 web pública (el repositorio `m7-serveis-en-xarxa-web` se borró el 19/10/2026)
-y no se enlazan; se migran uno a uno cuando el usuario lo pida.
+y no se enlazan desde ninguna página (el texto puede nombrarlos, sin enlace); se
+migran uno a uno cuando el usuario lo pida. El orden de las actividades del RA1
+es el de esta web, aunque el repo privado lo tenga distinto.
 Barra: Inici (portada personal «adr1») · Serveis de xarxa (`/serveis-en-xarxa/`, lista de RA) · Blog ·
 Herramientas (`/herramientas/`, utilidades en el navegador; de momento IPCalc).
 
