@@ -218,5 +218,7 @@ button { font: inherit; color: inherit; }
   :root:not([data-theme]) .astro-code, :root:not([data-theme]) .astro-code span { color: var(--shiki-dark); }
 }
 .astro-code code { font: inherit; }
+/* Bold escape codes in ```ansi fences, like the coloured parts of `ip -c a`. */
+.astro-code[data-language="ansi"] span { font-weight: var(--shiki-light-font-weight, inherit); }
 .code.dark .astro-code { background: #16202E !important; }
 .code.dark .astro-code, .code.dark .astro-code span { color: var(--shiki-dark); }

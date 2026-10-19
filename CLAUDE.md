@@ -1,9 +1,9 @@
 # M7 Serveis de xarxa · piloto Astro
 
 Nueva versión de la web del módulo 0227 (CFGM SMX). Piloto limitado al **RA1 (DHCP)**,
-un **blog** de recomendaciones y la infraestructura común. RA2–RA8 siguen en
-la web actual (`https://adr1mt.github.io/m7-serveis-en-xarxa-web/`) y no se
-enlazan ni se mencionan; se migran uno a uno cuando el usuario lo pida.
+un **blog** de recomendaciones y la infraestructura común. RA2–RA8 no tienen
+web pública (el repositorio `m7-serveis-en-xarxa-web` se borró el 19/10/2026)
+y no se enlazan; se migran uno a uno cuando el usuario lo pida.
 Barra: Inici (portada personal «adr1») · Serveis de xarxa (`/serveis-en-xarxa/`, lista de RA) · Blog ·
 Herramientas (`/herramientas/`, utilidades en el navegador; de momento IPCalc).
 
@@ -27,6 +27,10 @@ Herramientas (`/herramientas/`, utilidades en el navegador; de momento IPCalc).
 - Componentes MDX del RA1: `Callout` (recordatori, bones pràctiques, nota), `Flow`
   (secuencias como DORA), `Quiz` + `Question` (autoevaluación, solo en teoría).
   Los bloques de código llevan título: ```` ```bash title="Terminal" ````.
+  La salida de terminal con colores (`ip -c a`, `systemctl status`) va en ```` ```ansi ````
+  con los códigos de escape reales (carácter ESC): `1;36` cian, `1;33` amarillo, `1;35` magenta,
+  `1;34` azul, `1;32` verde y `32` sin negrita para la salida esperada. El tema claro cambia
+  esos colores por los de impresión del original (`ansiColors` en `astro.config.mjs`).
 - Enlaces entre páginas del RA1: relativos (`../../guies/g1-2-kea/`), así no dependen de `base`.
 - `site` y `base` están en `astro.config.mjs`. Si el repositorio cambia de nombre, solo se cambia `base`.
 

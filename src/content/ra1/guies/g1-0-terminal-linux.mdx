@@ -1,0 +1,562 @@
+---
+ref: G1.0
+title: "Guia: terminal de Linux"
+description: "Les ordres bàsiques per moure't, editar amb nano i mirar la xarxa d'un Ubuntu Server."
+---
+
+import Callout from "../../../components/Callout.astro";
+
+{/* Code fences in `ansi` keep the escape codes (ESC) of the real Ubuntu 26.04 colours:
+    1;36 cyan, 1;33 yellow, 1;35 magenta, 1;34 blue, 1;32 green. Plain 32 marks the expected output. */}
+
+## Què hi ha en aquesta guia
+
+Documentació oficial: [manpages.ubuntu.com](https://manpages.ubuntu.com) i
+[nano-editor.org](https://www.nano-editor.org/docs.php)
+
+- Punt de partida: Ubuntu Server 26.04 a IsardVDI, amb les targetes `enp1s0` i `enp2s0`.
+- Hi treballes per **SSH des de l'amfitrió**, per poder copiar i enganxar les ordres.
+- És el repàs que necessites abans d'[A1.1](../../activitats/a1-1-posada-a-punt/): fitxers, permisos, paquets, serveis, l'editor nano i la xarxa.
+- Les sortides d'exemple són d'una màquina de proves: les teves adreces seran unes altres. `…` marca una part de la sortida que s'ha tret perquè hi càpiga.
+
+## Llegir el prompt
+
+Abans de cada ordre, el terminal et diu qui ets, on ets i amb quins permisos treballes:
+
+```text title="Terminal"
+alumne@servidor:~$
+```
+
+| Part | Què vol dir |
+| --- | --- |
+| `alumne` | L'usuari amb què has entrat |
+| `servidor` | El nom de la màquina (_hostname_) |
+| `~` | El directori on ets. `~` és la teva carpeta personal, `/home/alumne` |
+| `$` | Usuari normal. Si hi veus `#`, ets **root** i tot el que facis té efecte sense preguntar |
+
+Per administrar no entres com a root: davant de l'ordre que ho necessita hi poses `sudo`. Executa només aquella ordre amb permisos d'administrador.
+
+```ansi title="Terminal"
+whoami
+sudo whoami
+[32malumne
+root[0m
+```
+
+## On ets: rutes i directoris
+
+A Linux tot penja d'una única arrel, `/`. No hi ha `C:` ni `D:`. Majúscules i minúscules són diferents: `Proves` i `proves` són dues carpetes.
+
+| Directori | Què hi trobes |
+| --- | --- |
+| `/etc` | La configuració del sistema i dels serveis: Netplan, Kea, SSH… |
+| `/home/alumne` | La teva carpeta personal, `~` |
+| `/root` | La carpeta personal de root |
+| `/var/log` | Els registres (_logs_) |
+| `/tmp` | Fitxers temporals: s'esborren en reiniciar |
+
+Una ruta **absoluta** comença per `/` i val des de qualsevol lloc: `/etc/netplan`. Una ruta **relativa** parteix d'on ets: `proves/nom.txt`. Tres dreceres: `.` és el directori actual, `..` el de sobre i `~` la teva carpeta personal.
+
+## Opcions curtes, llargues i abreujaments
+
+Una ordre porta **opcions** que canvien el que fa. La forma curta és un guió i una lletra: `-l`, `-a`. Es poden ajuntar: `ls -la` és el mateix que `ls -l -a`. La forma llarga, amb dos guions, s'entén millor: `ls -l --all`.
+
+L'ordre `ip` va més lluny: també accepta l'**objecte** abreujat. Per això trobaràs la mateixa ordre escrita de maneres diferents:
+
+| Abreujat | Complet | Què mostra |
+| --- | --- | --- |
+| `ip a` | `ip address show` | Les adreces de cada targeta |
+| `ip r` | `ip route show` | La taula de rutes |
+| `ip l` | `ip link show` | Les targetes i el seu estat, sense adreces IP |
+| `ip -c a` | `ip -color address` | El mateix que `ip a`, amb colors |
+| `ip -br a` | `ip -brief address` | Una línia per targeta |
+| `ss -tulpn` | `ss --tcp --udp --listening --processes --numeric` | Els ports que escolten |
+
+Si dubtes de què fa una opció, pregunta-ho a l'ordre: `ls --help` o `man ls` (surts amb <kbd>q</kbd>).
+
+## Moure't i gestionar fitxers
+
+1. **Mira on ets i què hi ha.** `-l` dona el detall i `-a` mostra també els fitxers ocults, els que comencen per punt:
+
+   ```bash title="Terminal"
+   pwd
+   ls -la
+   ```
+
+2. **Crea una carpeta de proves** amb una subcarpeta. `-p` crea tot el camí d'un cop:
+
+   ```bash title="Terminal"
+   mkdir -p ~/proves/xarxa
+   ```
+
+3. **Copia un fitxer** del sistema a la carpeta. Per copiar una carpeta sencera cal `-r`, de recursiu:
+
+   ```bash title="Terminal"
+   cp /etc/hostname ~/proves/
+   cp -r ~/proves ~/copia
+   ```
+
+4. **Canvia-li el nom.** `mv` mou i també reanomena: és la mateixa operació.
+
+   ```ansi title="Terminal"
+   cd ~/proves
+   mv hostname nom.txt
+   ls -l
+   total 8
+   -rw-r--r-- 1 alumne alumne    9 Oct 19 09:31 nom.txt
+   drwxrwxr-x 2 alumne alumne 4096 Oct 19 09:31 [1;34mxarxa[0m
+   ```
+
+5. **Llegeix-lo.** `cat` el bolca sencer; per a fitxers llargs, `less` et deixa avançar i sortir amb <kbd>q</kbd>. `tail -f` va mostrant les línies noves d'un registre fins que prems <kbd>Ctrl</kbd>+<kbd>C</kbd>.
+
+   ```ansi title="Terminal"
+   cat nom.txt
+   [32mservidor[0m
+   ```
+
+6. **Esborra la còpia.** `rm` esborra fitxers; amb `-r`, carpetes amb tot el que contenen. Torna a la carpeta personal amb `cd` sol:
+
+   ```bash title="Terminal"
+   cd
+   rm -r ~/copia
+   ```
+
+## rm no té paperera
+
+<Callout kind="recordatori">
+
+El que esborres amb `rm` no es pot recuperar, i amb `sudo rm -r` pots esborrar parts del sistema sense cap avís. Llegeix la ruta sencera abans de prémer <kbd>Enter</kbd> i, abans de tocar un fitxer de configuració, fes-ne una còpia `.bak`.
+
+</Callout>
+
+## Llegir els permisos
+
+La primera columna de `ls -l` diu què és cada cosa i qui hi pot fer què:
+
+```ansi title="Terminal"
+ls -l /etc/hostname /etc/netplan/
+[32m-rw-r--r-- 1 root root 9 Oct 19 09:29 /etc/hostname
+
+/etc/netplan/:
+total 4
+-rw------- 1 root root 194 Oct 19 09:29 50-cloud-init.yaml[0m
+```
+
+- El primer caràcter és el tipus: `-` fitxer, `d` directori.
+- Després van tres grups de tres: **propietari**, **grup** i **la resta**. `r` llegir, `w` escriure, `x` executar o entrar-hi; `-` vol dir que no.
+- Les dues columnes `root root` són el propietari i el grup.
+
+`/etc/hostname` el pot llegir tothom, però només root el pot modificar: per editar-lo et cal `sudo`. El fitxer de Netplan, `rw-------`, només el pot llegir root. Aquests permisos es canvien amb `chmod` (`sudo chmod 600 fitxer`) i el propietari, amb `chown`.
+
+## D'on surten els programes: apt, snap i flatpak
+
+A Linux els programes s'instal·len en **paquets**. A Ubuntu conviuen tres sistemes, cadascun amb la seva ordre i la seva font:
+
+| Sistema | D'on surten els paquets | On el trobaràs |
+| --- | --- | --- |
+| `apt` | Paquets `.deb` dels repositoris d'Ubuntu | A tots els Ubuntu. És el que fem servir als servidors |
+| `snap` | La botiga de Canonical. Cada paquet porta les seves dependències i s'actualitza sol | Ve instal·lat a Ubuntu Server i a l'escriptori d'Ubuntu |
+| `flatpak` | Aplicacions d'escriptori, sobretot de Flathub, aïllades de la resta del sistema | A escriptoris com Zorin. A Ubuntu Server no hi ve |
+
+Un mateix programa pot estar a més d'un sistema, amb versions i fitxers en llocs diferents. En aquest mòdul, els serveis s'instal·len amb `apt`: si en barreges dos, pots acabar amb dues còpies del mateix programa i no saber quina s'executa.
+
+| Feina | apt | snap | flatpak |
+| --- | --- | --- | --- |
+| Buscar | `apt search` | `snap find` | `flatpak search` |
+| Instal·lar | `sudo apt install` | `sudo snap install` | `flatpak install` |
+| Veure els instal·lats | `apt list --installed` | `snap list` | `flatpak list` |
+| Actualitzar | `sudo apt update` i `sudo apt upgrade` | `sudo snap refresh` | `flatpak update` |
+
+## Paquets amb apt
+
+On posa `<paquet>` hi va el nom del paquet que necessitis, sense els símbols `< >`. Si no el saps, el busques primer amb `apt search`.
+
+| Ordre | Què fa |
+| --- | --- |
+| `sudo apt update` | Descarrega la **llista** de paquets i versions disponibles. No instal·la res |
+| `sudo apt upgrade` | Instal·la les versions noves dels paquets que ja tens |
+| `apt search <paraula>` | Busca els paquets que tenen aquesta paraula al nom o a la descripció |
+| `apt show <paquet>` | Mostra la descripció i la versió d'un paquet |
+| `sudo apt install <paquet>` | Instal·la un paquet |
+| `sudo apt remove <paquet>` | El desinstal·la |
+
+La confusió més habitual és entre les dues primeres. Sempre en aquest ordre: primer la llista, després l'actualització.
+
+```ansi title="Terminal"
+sudo apt update
+[32m…
+40 packages can be upgraded. Run 'apt list --upgradable' to see them.[0m
+sudo apt upgrade
+[32m…
+Continue? [Y/n][0m
+```
+
+La majúscula de `[Y/n]` és l'opció per defecte: <kbd>Enter</kbd> sol vol dir que sí.
+
+## Serveis amb systemctl
+
+Un servei és un programa que funciona de fons, com el servidor SSH o el DHCP. Els gestiona **systemd** amb l'ordre `systemctl`, i els seus missatges es llegeixen amb `journalctl`. On posa `<servei>` hi va el nom del servei; la llista surt amb `systemctl list-units --type=service`.
+
+| Ordre | Què fa |
+| --- | --- |
+| `systemctl status <servei>` | Diu si funciona, si s'engega en arrencar i els últims missatges |
+| `sudo systemctl restart <servei>` | El reinicia perquè llegeixi la configuració nova |
+| `sudo systemctl stop <servei>`<br />`sudo systemctl start <servei>` | L'atura o l'engega ara |
+| `sudo systemctl enable --now <servei>` | Fa que s'engegui en arrencar, i també ara |
+| `sudo journalctl -u <servei> -n 20` | Les 20 últimes línies del seu registre |
+| `sudo journalctl -u <servei> -f` | El registre en directe, fins a <kbd>Ctrl</kbd>+<kbd>C</kbd> |
+
+Per exemple, l'estat del servei SSH, que ja tens funcionant:
+
+```ansi title="Terminal"
+systemctl status ssh
+[1;32m●[0m ssh.service - OpenBSD Secure Shell server
+     Loaded: loaded (/usr/lib/systemd/system/ssh.service; [1;33mdisabled[0m; …)
+     Active: [1;32mactive (running)[0m since Mon 2026-10-19 09:29:54 UTC; 1min 33s ago
+```
+
+`Active: active (running)` vol dir que funciona ara. `enabled` o `disabled`, a la línia `Loaded`, diu si s'engega sol en arrencar. Aquí surt `disabled` perquè a Ubuntu SSH l'engega `ssh.socket` quan arriba una connexió. Si la sortida no cap a la pantalla, surts amb <kbd>q</kbd>.
+
+Sense `sudo`, `journalctl` no mostra els missatges del sistema: diu `-- No entries --`.
+
+## Editar amb nano
+
+**nano** és l'editor de text del terminal que farem servir. Les dues línies de baix són les dreceres: `^` vol dir <kbd>Ctrl</kbd> i `M-` vol dir <kbd>Alt</kbd>.
+
+```text title="Terminal · nano"
+  GNU nano 8.7.1                       prova.txt *
+hola
+
+                                  [ New File ]
+^G Help      ^O Write Out ^F Where Is  ^K Cut       ^T Execute   ^C Location
+^X Exit      ^R Read File ^\ Replace   ^U Paste     ^J Justify   ^/ Go To Line
+```
+
+| Tecles | Què fa |
+| --- | --- |
+| <kbd>Ctrl</kbd>+<kbd>S</kbd> | Desa sense preguntar |
+| <kbd>Ctrl</kbd>+<kbd>X</kbd> | Surt. Si hi ha canvis, pregunta si els desa: <kbd>Y</kbd> i <kbd>Enter</kbd> per confirmar el nom |
+| <kbd>Ctrl</kbd>+<kbd>W</kbd> o <kbd>Ctrl</kbd>+<kbd>F</kbd> | Busca un text |
+| <kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>Ctrl</kbd>+<kbd>U</kbd> | Talla la línia sencera / l'enganxa on tens el cursor |
+| <kbd>Alt</kbd>+<kbd>U</kbd> | Desfà l'últim canvi |
+| <kbd>Ctrl</kbd>+<kbd>_</kbd> | Va a un número de línia |
+| <kbd>Ctrl</kbd>+<kbd>C</kbd> | Diu a quina línia ets. Dins d'una pregunta, la cancel·la |
+| <kbd>Alt</kbd>+<kbd>N</kbd> | Mostra o amaga els números de línia |
+
+Per enganxar un text copiat a l'amfitrió no facis servir <kbd>Ctrl</kbd>+<kbd>U</kbd>, que és el porta-retalls de nano: enganxa des del terminal, normalment amb el botó dret.
+
+## Editar un fitxer amb còpia de seguretat
+
+Practica-ho amb una còpia de `/etc/hosts` dins de `~/proves`. Amb els fitxers de `/etc` és igual, però amb `sudo` davant de cada ordre.
+
+1. **Fes la còpia de treball i la de seguretat:**
+
+   ```bash title="Terminal"
+   cp /etc/hosts ~/proves/hosts
+   cp ~/proves/hosts ~/proves/hosts.bak
+   ```
+
+2. **Obre-la amb els números de línia** (`-l`):
+
+   ```bash title="Terminal"
+   nano -l ~/proves/hosts
+   ```
+
+3. **Afegeix una línia al final**: baixa amb les fletxes fins a la línia buida, escriu-la, desa amb <kbd>Ctrl</kbd>+<kbd>S</kbd> i surt amb <kbd>Ctrl</kbd>+<kbd>X</kbd>:
+
+   ```text title="Text a afegir"
+   192.168.1.1 servidor.internal
+   ```
+
+4. **Compara-la amb la còpia de seguretat.** `diff` només mostra el que ha canviat; `>` marca les línies noves:
+
+   ```ansi title="Terminal"
+   diff ~/proves/hosts.bak ~/proves/hosts
+   [32m9a10
+   > 192.168.1.1 servidor.internal[0m
+   ```
+
+   `9a10` vol dir «després de la línia 9 s'ha afegit la 10». A la teva màquina el número pot ser un altre. Si t'has equivocat, recuperes l'original amb `cp ~/proves/hosts.bak ~/proves/hosts`.
+
+## Les adreces: ip -c a
+
+`ip -c a` mostra totes les targetes amb les seves adreces. La `-c` hi posa colors: noms de targeta, MAC, IPv4, IPv6 i estat. Hi ha tres blocs: `lo`, l'externa i la interna.
+
+```ansi title="Terminal"
+ip -c a
+1: [1;36mlo: [0m<LOOPBACK,UP,LOWER_UP> mtu 65536 … state UNKNOWN …
+    link/loopback [1;33m00:00:00:00:00:00[0m brd [1;33m00:00:00:00:00:00[0m
+    inet [1;35m127.0.0.1[0m/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 [1;34m::1[0m/128 scope host noprefixroute
+       valid_lft forever preferred_lft forever
+2: [1;36menp1s0: [0m<BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 … state [1;32mUP [0m…
+    link/ether [1;33m52:54:00:12:34:56[0m brd [1;33mff:ff:ff:ff:ff:ff[0m
+    altname enx525400123456
+    inet [1;35m10.0.2.15[0m/24 metric 100 brd [1;35m10.0.2.255 [0mscope global dynamic enp1s0
+       valid_lft 86388sec preferred_lft 86388sec
+    inet6 [1;34mfec0::5054:ff:fe12:3456[0m/64 scope site dynamic …
+       valid_lft 86389sec preferred_lft 14389sec
+    inet6 [1;34mfe80::5054:ff:fe12:3456[0m/64 scope link proto kernel_ll
+       valid_lft forever preferred_lft forever
+3: [1;36menp2s0: [0m<BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 … state [1;32mUP [0m…
+    link/ether [1;33m52:54:00:12:34:57[0m brd [1;33mff:ff:ff:ff:ff:ff[0m
+    altname enx525400123457
+    inet [1;35m192.168.1.1[0m/24 brd [1;35m192.168.1.255 [0mscope global enp2s0
+       valid_lft forever preferred_lft forever
+    inet6 [1;34mfe80::5054:ff:fe12:3457[0m/64 scope link proto kernel_ll
+       valid_lft forever preferred_lft forever
+```
+
+| Tros | Què vol dir |
+| --- | --- |
+| `2: enp1s0` | Número i nom de la targeta |
+| `lo` | _Loopback_: la targeta virtual amb què la màquina es parla a si mateixa, `127.0.0.1` |
+| `UP,LOWER_UP` | `UP`: targeta activada. `LOWER_UP`: té enllaç, el «cable» està connectat |
+| `mtu 1500` | Mida màxima d'un paquet, en bytes |
+| `state UP` | Estat de l'enllaç. `DOWN`: desactivada o sense connexió |
+| `link/ether 52:54:…` | L'adreça MAC de la targeta |
+| `altname enx…` | Un segon nom, fet amb la MAC. No el necessites |
+| `inet 10.0.2.15/24` | L'adreça IPv4 i la màscara en format CIDR |
+| `brd 10.0.2.255` | L'adreça de difusió (_broadcast_) de la xarxa |
+| `scope global` | Adreça vàlida per parlar amb altres xarxes. `host`: només dins la màquina. `link`: només dins el mateix segment |
+| `dynamic` | L'adreça l'ha donada un servidor DHCP. La IP fixa d'`enp2s0` no ho diu |
+| `valid_lft 86388sec` | Segons que queden de concessió DHCP. Una IP fixa diu `forever` |
+| `metric 100` | Prioritat de les rutes que surten d'aquesta adreça: com més baixa, més preferent |
+| `inet6 fe80::…` | Adreça IPv6 local de l'enllaç, automàtica. Les altres `inet6` depenen de la xarxa; en aquest mòdul no les farem servir |
+
+Per a una ullada ràpida, `ip -br a` ho resumeix en una línia per targeta:
+
+```ansi title="Terminal"
+ip -br a
+[1;36mlo               [0mUNKNOWN        [1;35m127.0.0.1[0m/8 [1;34m::1[0m/128
+[1;36menp1s0           [0m[1;32mUP             [0m[1;35m10.0.2.15[0m/24 metric 100 [1;34mfec0::…[0m [1;34mfe80::…[0m
+[1;36menp2s0           [0m[1;32mUP             [0m[1;35m192.168.1.1[0m/24 [1;34mfe80::…[0m
+```
+
+## Les rutes: ip -c r
+
+La taula de rutes decideix per quina targeta surt cada paquet. Cada línia és un destí; el paquet segueix la línia més concreta que el cobreix, i si no n'hi ha cap, la `default`.
+
+```ansi title="Terminal"
+ip -c r
+default via [1;35m10.0.2.2 [0mdev [1;36menp1s0 [0mproto dhcp src [1;35m10.0.2.15 [0mmetric 100
+[1;35m10.0.2.0/24 [0mdev [1;36menp1s0 [0mproto kernel scope link src [1;35m10.0.2.15 [0mmetric 100
+[1;35m10.0.2.2 [0mdev [1;36menp1s0 [0mproto dhcp scope link src [1;35m10.0.2.15 [0mmetric 100
+[1;35m10.0.2.3 [0mdev [1;36menp1s0 [0mproto dhcp scope link src [1;35m10.0.2.15 [0mmetric 100
+[1;35m192.168.1.0/24 [0mdev [1;36menp2s0 [0mproto kernel scope link src [1;35m192.168.1.1[0m
+```
+
+| Tros | Què vol dir |
+| --- | --- |
+| `default` | La ruta per defecte: tot el que no és de cap xarxa coneguda, com Internet |
+| `via 10.0.2.2` | La porta d'enllaç, el router a qui s'envia |
+| `dev enp1s0` | La targeta per on surt |
+| `proto dhcp` | Qui ha creat la ruta: el DHCP. `proto kernel`: el sistema, en posar una IP a la targeta |
+| `scope link` | El destí és a la mateixa xarxa: s'hi arriba directament, sense router |
+| `src 10.0.2.15` | L'adreça d'origen que porten els paquets que surten per aquí |
+| `metric 100` | Prioritat: entre dues rutes iguals, guanya la de mètrica més baixa |
+
+Llegida sencera: la xarxa externa `10.0.2.0/24` i la interna `192.168.1.0/24` són directes; les línies `10.0.2.2` i `10.0.2.3` són el router i el DNS que ha anunciat el DHCP; la resta va a `10.0.2.2` per `enp1s0`. Hi ha **una sola** `default`, i la interna no en té cap.
+
+## Provar la connexió: ping
+
+`ping` envia paquets a una adreça i espera la resposta. Posa-hi sempre `-c` amb el nombre de paquets; si no, no s'atura fins que prems <kbd>Ctrl</kbd>+<kbd>C</kbd>.
+
+```ansi title="Terminal"
+ping -c 2 10.0.2.2
+[32mPING 10.0.2.2 (10.0.2.2) 56(84) bytes of data.
+64 bytes from 10.0.2.2: icmp_seq=1 ttl=255 time=0.098 ms
+64 bytes from 10.0.2.2: icmp_seq=2 ttl=255 time=0.197 ms
+
+--- 10.0.2.2 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1007ms
+rtt min/avg/max/mdev = 0.098/0.147/0.197/0.049 ms[0m
+```
+
+- `icmp_seq`: el número de cada paquet. Si en falta algun, s'ha perdut.
+- `time`: quant ha trigat a anar i tornar.
+- `0% packet loss`: han tornat tots. `100%`: no ha arribat cap resposta.
+
+Prova per ordre: la porta d'enllaç que veus a `ip r`, després una IP d'Internet com `9.9.9.9` i després un nom. Així saps a quin tram s'ha trencat la connexió.
+
+## Resoldre noms: dig
+
+`dig` pregunta a un servidor DNS quina IP té un nom. Les parts que t'interessen són tres:
+
+```ansi title="Terminal"
+dig moodle.elpuig.xeill.net
+[32m; <<>> DiG 9.20.24-1ubuntu0.3-Ubuntu <<>> moodle.elpuig.xeill.net
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 1638
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 65494
+;; QUESTION SECTION:
+;moodle.elpuig.xeill.net.	IN	A
+
+;; ANSWER SECTION:
+moodle.elpuig.xeill.net. 600	IN	A	136.243.80.28
+
+;; Query time: 45 msec
+;; SERVER: 127.0.0.53#53(127.0.0.53) (UDP)
+;; WHEN: Mon Oct 19 09:30:43 UTC 2026
+;; MSG SIZE  rcvd: 68[0m
+```
+
+- `status: NOERROR`: el nom existeix. `NXDOMAIN`: no existeix.
+- `ANSWER SECTION`: la resposta. El nom, quants segons es pot guardar (`600`), el tipus de registre (`A`, una IPv4) i la IP.
+- `SERVER: 127.0.0.53`: qui ha respost. És el resolutor local d'Ubuntu, que passa la pregunta als DNS de la xarxa; els veus amb `resolvectl dns`.
+
+Si només vols la IP, `+short`. Per preguntar a un servidor concret, posa'l darrere d'una `@`:
+
+```ansi title="Terminal"
+dig +short moodle.elpuig.xeill.net
+dig @9.9.9.9 +short moodle.elpuig.xeill.net
+[32m136.243.80.28
+136.243.80.28[0m
+```
+
+A l'RA2 aprofundiràs en el DNS i en tot el que mostra `dig`.
+
+## Quins serveis escolten: ss
+
+Un servei que funciona ha d'estar escoltant en un port. `ss -tuln` els llista: `-t` TCP, `-u` UDP, `-l` només els que escolten i `-n` números de port en lloc de noms.
+
+```ansi title="Terminal"
+ss -tuln
+[32mNetid State  Recv-Q Send-Q    Local Address:Port Peer Address:Port
+udp   UNCONN 0      0            127.0.0.54:53        0.0.0.0:*
+udp   UNCONN 0      0         127.0.0.53%lo:53        0.0.0.0:*
+udp   UNCONN 0      0      10.0.2.15%enp1s0:68        0.0.0.0:*
+udp   UNCONN 0      0             127.0.0.1:323       0.0.0.0:*
+udp   UNCONN 0      0                 [::1]:323          [::]:*
+tcp   LISTEN 0      4096      127.0.0.53%lo:53        0.0.0.0:*
+tcp   LISTEN 0      4096            0.0.0.0:22        0.0.0.0:*
+tcp   LISTEN 0      4096         127.0.0.54:53        0.0.0.0:*
+tcp   LISTEN 0      4096               [::]:22           [::]:*[0m
+```
+
+- `Local Address:Port`: on escolta. `0.0.0.0:22` és SSH a totes les adreces IPv4; `[::]:22`, a totes les IPv6.
+- `127.0.0.53%lo:53`: el DNS local, només accessible des de la mateixa màquina.
+- `10.0.2.15%enp1s0:68`: el client DHCP de l'externa. El servidor DHCP que muntaràs escoltarà al 67.
+- Amb `-p` i `sudo`, `sudo ss -tulpn`, cada línia acaba amb el programa que escolta: `users:(("sshd",…))`.
+
+## Dreceres del terminal
+
+| Tecla o ordre | Què fa |
+| --- | --- |
+| <kbd>Tab</kbd> | Completa noms d'ordres, fitxers i carpetes. Dues vegades, mostra les opcions |
+| <kbd>↑</kbd> / <kbd>↓</kbd> | Recupera les ordres anteriors |
+| <kbd>Ctrl</kbd>+<kbd>R</kbd> | Busca en l'historial d'ordres |
+| <kbd>Ctrl</kbd>+<kbd>C</kbd> | Atura l'ordre que s'està executant |
+| <kbd>Ctrl</kbd>+<kbd>L</kbd> | Neteja la pantalla |
+| <kbd>q</kbd> | Surt de `less`, `man`, `systemctl status` i `journalctl` |
+| `ordre \| grep text` | Passa la sortida a `grep`, que deixa només les línies amb aquell text. Exemple: `ip r \| grep default` |
+
+## Comprova que ho tens per la mà
+
+Al teu servidor, has de saber respondre cada pregunta amb una ordre:
+
+1. **Quina IP té cada targeta i quina és per DHCP?**
+
+   ```bash title="Terminal"
+   ip -c a
+   ```
+
+   L'externa diu `dynamic`; la interna, no.
+
+2. **Per on surt cap a Internet?**
+
+   ```bash title="Terminal"
+   ip r | grep default
+   ```
+
+   Una sola línia, per l'externa.
+
+3. **Arribes al router i resols noms?**
+
+   ```bash title="Terminal"
+   ping -c 3 IP-de-la-porta-d-enllaç
+   dig +short moodle.elpuig.xeill.net
+   ```
+
+   `0% packet loss` i una IP com a resposta.
+
+4. **El servei SSH funciona i escolta?**
+
+   ```bash title="Terminal"
+   systemctl is-active ssh
+   sudo ss -tlpn | grep :22
+   ```
+
+   `active` i l'`sshd` escoltant al port 22.
+
+## Criteris professionals
+
+<Callout kind="bones pràctiques">
+
+- **`sudo` només quan cal.** Si una ordre funciona sense, no l'hi posis.
+- **Còpia `.bak`** abans d'editar qualsevol fitxer de `/etc`.
+- **Un canvi i una comprovació.** Després de tocar una configuració, reinicia el servei i mira'n l'estat abans de seguir.
+- **<kbd>Tab</kbd> sempre.** Si no completa, el fitxer no és on et penses.
+- **No enganxis ordres que no entens**, sobretot les que porten `sudo` o `rm`.
+
+</Callout>
+
+## Errors habituals
+
+### `Permission denied` o `Unable to lock directory`
+
+**Causa** L'ordre necessita permisos d'administrador: llegir `/etc/shadow`, fer `apt update`…
+
+**Solució** Torna-la a executar amb `sudo` davant. `sudo !!` repeteix l'última ordre amb `sudo`.
+
+### `[ Error writing … Permission denied ]` en desar amb nano
+
+**Causa** Has obert un fitxer de `/etc` sense `sudo`.
+
+**Solució** Surt amb <kbd>Ctrl</kbd>+<kbd>X</kbd> sense desar (<kbd>N</kbd>) i torna'l a obrir amb `sudo nano`.
+
+### `No such file or directory`
+
+**Causa** La ruta no existeix des d'on ets: una majúscula, una ruta relativa des d'una altra carpeta o una lletra canviada.
+
+**Solució** Mira on ets amb `pwd` i escriu la ruta amb <kbd>Tab</kbd>.
+
+### `Command 'ifconfig' not found`
+
+**Causa** L'ordre no està instal·lada o està mal escrita. `ifconfig` és antiga: el seu paquet ja no ve per defecte.
+
+**Solució** Fes servir `ip`. Si és una ordre que necessites, el missatge t'indica el paquet: `sudo apt install` i el nom.
+
+### El terminal no torna al prompt
+
+**Causa** Ets dins de `less`, `man` o `systemctl status`, o hi ha una ordre que no s'acaba, com `ping` sense `-c`.
+
+**Solució** <kbd>q</kbd> per sortir del visor; <kbd>Ctrl</kbd>+<kbd>C</kbd> per aturar l'ordre.
+
+### `ping` a la porta d'enllaç va bé, però a `9.9.9.9` falla
+
+**Causa** Falta la ruta `default`, o la xarxa bloqueja el `ping` cap a fora.
+
+**Solució** Revisa `ip r`. Si la ruta hi és, prova amb un nom: si `dig` respon, la connexió funciona.
+
+## Resum
+
+| Ordre | Per a què serveix |
+| --- | --- |
+| `pwd` · `ls -la` · `cd` | On soc, què hi ha, canviar de directori |
+| `mkdir -p` · `cp -r` · `mv` · `rm -r` | Crear, copiar, moure o reanomenar, esborrar |
+| `cat` · `less` · `tail -f` | Llegir un fitxer o un registre |
+| `sudo nano fitxer` | Editar. <kbd>Ctrl</kbd>+<kbd>S</kbd> desa, <kbd>Ctrl</kbd>+<kbd>X</kbd> surt |
+| `sudo apt update` · `sudo apt upgrade` | Actualitzar la llista i, després, els paquets |
+| `systemctl status` · `sudo journalctl -u` | Estat i registre d'un servei |
+| `ip -c a` · `ip -br a` | Adreces de les targetes |
+| `ip -c r` | Rutes i porta d'enllaç |
+| `ping -c 3` · `dig` | Connectivitat i resolució de noms |
+| `sudo ss -tulpn` | Ports que escolten i quin programa |
+
+**Continua:** amb la _[G1.1](../../guies/g1-1-netplan/) · Netplan_ configuraràs les dues targetes que acabes de mirar.
