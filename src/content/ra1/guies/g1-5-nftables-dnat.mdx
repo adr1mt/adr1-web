@@ -1,0 +1,64 @@
+---
+ref: G1.5
+title: "Ampliació: publicar un servei amb nftables"
+description: "Redirecció de ports (DNAT) per a pràctiques posteriors."
+---
+
+## Quan necessites aquesta ampliació?
+
+Quan vulguis accedir des de la xarxa externa a un servei d'un equip intern. **No cal per donar Internet als clients a G1.3.**
+
+Parteix de [G1.3](../../guies/g1-3-nftables/) ja funcionant. Exemple: un servidor web intern a `192.168.1.10:80`, amb `192.168.1.1` com a porta d'enllaç. Adapta les IP i les targetes a la teva activitat.
+
+## 1. Redirigeix el port
+
+Al fitxer `/etc/nftables.conf` del servidor que fa de porta d'enllaç, afegeix aquesta cadena **dins de `table ip nat`**, abans de `chain postrouting`:
+
+```text title="Afegir dins de table ip nat"
+chain prerouting {
+    type nat hook prerouting priority dstnat;
+    # Forward external HTTP requests to the internal web server
+    iifname "enp1s0" tcp dport 80 dnat to 192.168.1.10:80
+}
+```
+
+`dnat to` canvia la destinació del paquet perquè arribi al servidor intern.
+
+## 2. Permet el pas pel tallafoc
+
+Dins de `chain forward`, abans de la regla de les respostes, afegeix:
+
+```text title="Afegir dins de chain forward"
+iifname "enp1s0" oifname "enp2s0" ip daddr 192.168.1.10 tcp dport 80 accept
+```
+
+El DNAT ja ha canviat la destinació: aquesta regla permet el pas cap a la IP i el port **interns**. Conserva les altres regles de G1.3.
+
+## 3. Valida i aplica
+
+```bash title="Terminal · porta d'enllaç"
+sudo nft -c -f /etc/nftables.conf
+```
+
+Si no mostra errors:
+
+```bash title="Terminal · porta d'enllaç"
+sudo systemctl restart nftables
+ip -brief a
+```
+
+Apunta la IP de la targeta externa.
+
+## Comprova-ho des de fora
+
+Des d'un equip de `puigcastellar1`, substitueix el marcador per aquella IP:
+
+```bash title="Terminal · equip extern"
+curl http://IP-EXTERNA-DEL-SERVIDOR/
+```
+
+Ha de retornar el contingut del web de `192.168.1.10`. El servei web ha d'estar en funcionament i permetre connexions al port 80.
+
+**Recorda:** DNAT canvia la destinació; `forward` permet que el paquet travessi el servidor.
+
+Consulta: [documentació oficial de NAT a nftables](https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_(NAT)).

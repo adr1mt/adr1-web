@@ -1,154 +1,61 @@
 ---
 ref: G1.3
 title: "Guia: nftables"
-description: "Encaminament i NAT: convertir el servidor en porta d'enllaç."
+description: "Donar Internet als clients del servidor DHCP en cinc passos."
 ---
 
-import Callout from "../../../components/Callout.astro";
+## Què volem aconseguir?
 
-## Què hi ha en aquesta guia
+Els clients de [G1.2](../../guies/g1-2-kea/) ja reben una IP per DHCP. Ara farem que també tinguin Internet a través del servidor.
 
-Documentació oficial: [wiki.nftables.org](https://wiki.nftables.org)
-
-Les regles viuen a `/etc/nftables.conf` i les carrega el servei `nftables`. A Internet trobaràs sobretot `iptables`: encara funciona, però avui és una capa de compatibilitat sobre `nftables`. **No barregis els dos**: tria `nftables` i queda-t'hi.
-
-## L'escenari d'exemple
-
-Continuem amb el servidor de [G1.2](../../guies/g1-2-kea/), que ja reparteix adreces. **Són dades d'exemple**: a cada activitat tindràs les teves.
-
-- `enp1s0`, connectada a **puigcastellar1**: la sortida a Internet.
-- `enp2s0`, connectada a **personal1**: la xarxa `192.168.1.0/24` dels clients, amb el servidor a `192.168.1.1` com a porta d'enllaç.
-
-Els clients ja tenen IP, però no surten a Internet. El servidor ha de deixar passar els seus paquets d'`enp2s0` a `enp1s0` (encaminament) i canviar-ne l'origen per la seva adreça externa (NAT).
-
-## 1. Convertir el servidor en porta d'enllaç
-
-<details class="fold">
-<summary>Mostra els passos</summary>
-
-<Callout kind="recordatori">
-
-Estàs escrivint un tallafoc. Si poses `policy drop` a la cadena `input` sense permetre SSH, perdràs la connexió en carregar les regles. En aquesta pràctica deixem `input` amb `policy accept` justament per evitar-ho: filtrem el trànsit que _travessa_ el servidor, no el que hi arriba.
-
-</Callout>
-
-1. **Mira com està ara** l'encaminament:
-
-   ```bash title="Terminal"
-   cat /proc/sys/net/ipv4/ip_forward
-   ```
-
-   Sortirà `0`.
-
-2. **Activa'l de manera permanent** amb un fitxer propi, que és més net que tocar el fitxer general:
-
-   ```bash title="Terminal"
-   echo "net.ipv4.ip_forward=1" | sudo tee /etc/sysctl.d/99-encaminament.conf
-   sudo sysctl --system
-   ```
-
-   Torna a comprovar-ho: ara ha de sortir `1`. I sobreviurà a un reinici.
-
-3. **Escriu les regles**: enganxa-hi el fitxer complet de l'apartat 2, amb els noms de les teves targetes:
-
-   ```bash title="Terminal"
-   sudo nano /etc/nftables.conf
-   ```
-
-4. **Comprova la sintaxi** sense aplicar res:
-
-   ```bash title="Terminal"
-   sudo nft -c -f /etc/nftables.conf
-   ```
-
-5. **Activa el servei** perquè carregui les regles ara i a cada arrencada:
-
-   ```bash title="Terminal"
-   sudo systemctl enable --now nftables
-   ```
-
-   <Callout kind="nota">
-
-   **Compte** `enable --now` fa les dues coses alhora. No facis `enable & start` amb un sol `&`: això envia la primera comanda a segon pla i sembla que funciona quan no ho ha fet.
-
-   </Callout>
-
-6. **Comprova que les regles s'han carregat:**
-
-   ```bash title="Terminal"
-   sudo nft list ruleset
-   ```
-
-   Hi han de sortir les regles del fitxer, amb la regla `masquerade` a la taula de NAT. Si surt buit, comprova `systemctl status nftables` i `sudo journalctl -u nftables` per trobar l'error.
-
-<Callout kind="nota">
-
-**Ubuntu 26.04** Al `nft list ruleset` les prioritats no surten com les has escrit: on tu poses `priority 0` hi llegiràs `priority filter`, i on poses `priority 100`, `priority srcnat`. Són els noms dels mateixos números: la regla s'ha carregat bé.
-
-</Callout>
-
-</details>
-
-## 2. Anàlisi del fitxer de configuració
-
-<details class="fold">
-<summary>Mostra l'anàlisi</summary>
-
-Les regles viuen a `/etc/nftables.conf`. Té dues taules: `filter` decideix què pot passar i `nat` canvia les adreces.
-
-### Les cadenes que no filtren
-
-```text title="input i output"
-chain input {
-    type filter hook input priority 0;
-    policy accept;
-}
-chain output {
-    type filter hook output priority 0;
-    policy accept;
-}
+```text title="El camí dels paquets"
+Clients → servidor → Internet
 ```
 
-- `input` és el trànsit que arriba al servidor i `output`, el que en surt. Tots dos queden oberts: filtrem el trànsit que _travessa_ el servidor.
+- **DHCP** dona als clients la IP, la porta d'enllaç i el DNS.
+- **Encaminament** permet al servidor passar paquets d'una targeta a l'altra.
+- **NAT** fa que els clients surtin amb la IP externa del servidor. El farem amb `nftables`.
 
-### El trànsit que travessa el servidor
+Treballa al **servidor de pràctiques**, que ja ha de tenir Internet. Els clients han de tenir aquest servidor com a porta d'enllaç.
 
-```text title="forward"
-chain forward {
-    type filter hook forward priority 0;
-    policy drop;
+## 1. Identifica les dues targetes
 
-    # de la xarxa interna cap a Internet
-    iifname "enp2s0" oifname "enp1s0" accept
+Al servidor:
 
-    # només les respostes de tornada
-    iifname "enp1s0" oifname "enp2s0" ct state related,established accept
-}
+```bash title="Terminal · servidor"
+ip -brief a
 ```
 
-- `policy drop`: el que no està permès, no passa.
-- La primera regla deixa sortir la xarxa interna cap a Internet; la segona només deixa tornar les respostes.
-- `iifname` i `oifname` comparen el nom de la targeta: les regles es poden carregar encara que la targeta no hagi aparegut durant l'arrencada.
+En aquest exemple:
 
-### El NAT
+- **Externa:** `enp1s0`, connectada a `puigcastellar1`, amb IP per DHCP.
+- **Interna:** `enp2s0`, connectada a `personal1`, amb IP `192.168.1.1/24`.
 
-```text title="postrouting"
-table ip nat {
-    chain postrouting {
-        type nat hook postrouting priority 100;
-        # NAT a la targeta que surt a Internet
-        oifname "enp1s0" masquerade
-    }
-}
+**Adapta els noms de les targetes i les IP a la teva activitat.** No canviïs la IP externa a una de fixa.
+
+## 2. Activa l'encaminament
+
+Al servidor, desa aquesta opció i aplica-la:
+
+```bash title="Terminal · servidor"
+echo "net.ipv4.ip_forward=1" | sudo tee /etc/sysctl.d/99-encaminament.conf
+sudo sysctl --system
+cat /proc/sys/net/ipv4/ip_forward
 ```
 
-- `masquerade` canvia l'adreça d'origen dels clients per la de la targeta externa del servidor.
+L'última ordre ha de mostrar **`1`**: el servidor ja pot encaminar paquets. L'opció es conserva en reiniciar.
 
-### El fitxer complet
+## 3. Escriu la configuració de nftables
 
-És el fitxer sencer amb els tres trossos anteriors.
+Obre el fitxer:
 
-```text title="Regles · nftables"
+```bash title="Terminal · servidor"
+sudo nano /etc/nftables.conf
+```
+
+Substitueix-ne el contingut pel següent i **adapta `enp1s0` i `enp2s0`**. Aquesta plantilla substitueix les regles de la màquina de pràctiques.
+
+```text title="/etc/nftables.conf"
 #!/usr/sbin/nft -f
 flush ruleset
 
@@ -161,10 +68,10 @@ table inet filter {
         type filter hook forward priority 0;
         policy drop;
 
-        # de la xarxa interna cap a Internet
+        # Allow clients to reach the external network
         iifname "enp2s0" oifname "enp1s0" accept
 
-        # només les respostes de tornada
+        # Allow replies and related traffic back to clients
         iifname "enp1s0" oifname "enp2s0" ct state related,established accept
     }
     chain output {
@@ -176,78 +83,68 @@ table inet filter {
 table ip nat {
     chain postrouting {
         type nat hook postrouting priority 100;
-        # NAT a la targeta que surt a Internet
+        # Use the external interface address as the source
         oifname "enp1s0" masquerade
     }
 }
 ```
 
-</details>
+Queda't amb aquestes tres accions:
 
-## Comprovar que els clients surten a Internet
+- La primera regla de `forward` **deixa sortir els clients**.
+- La segona **deixa tornar les respostes** i el trànsit relacionat. `policy drop` bloqueja la resta del trànsit que travessa el servidor.
+- `masquerade` **canvia la IP d'origen per la IP externa del servidor**.
 
-Prova-ho des del client, per capes, en aquest ordre:
+`input` i `output` queden oberts per mantenir els serveis del servidor. En aquesta pràctica només filtrem el trànsit que el travessa.
 
-```bash title="Terminal"
-ip route              # la porta d'enllaç és el servidor?
-ping -c3 192.168.1.1  # arribo al servidor?
-ping -c3 1.1.1.1      # surto a Internet?
-ping -c3 www.upc.edu  # funciona el DNS?
+## 4. Valida i carrega les regles
+
+Primer comprova el fitxer:
+
+```bash title="Terminal · servidor"
+sudo nft -c -f /etc/nftables.conf
 ```
 
-La gràcia és l'ordre: la primera que falli et diu exactament on és el problema. Si la IP va i el nom no, comprova si el nom es resol abans de concloure que falla DNS.
+**Si no mostra errors**, habilita el servei per a les arrencades i carrega la configuració:
 
-## Publicar cap a fora un servei de la xarxa interna
+```bash title="Terminal · servidor"
+sudo systemctl enable nftables
+sudo systemctl restart nftables
+sudo nft list ruleset
+```
 
-<details class="fold">
-<summary>Mostra els passos</summary>
+Hi han de sortir les regles, inclosa `masquerade`. Si edites el fitxer més endavant, torna a validar-lo i a reiniciar el servei.
 
-`dnat to` reescriu l'adreça (i el port, si cal) de destinació d'un paquet abans que el nucli decideixi cap a on l'encamina. Per això viu al ganxo `prerouting`, amb la prioritat `dstnat`. Canviar la destinació no obre pas tot sol: amb `policy drop` a `forward`, cal una regla que ho permeti.
+## 5. Comprova-ho des del client
 
-1. **Afegeix una cadena `prerouting`** dins la taula `ip nat` que ja tens, abans de `chain postrouting`:
+Executa aquestes ordres **al client**, en aquest ordre. Adapta la IP del servidor:
 
-   ```text title="Regles · nftables"
-   chain prerouting {
-       type nat hook prerouting priority dstnat;
-       # trànsit extern cap al servidor intern, port 80
-       iifname "enp1s0" tcp dport 80 dnat to 192.168.1.10:80
-   }
-   ```
+```bash title="Terminal · client"
+ip route
+ping -c3 192.168.1.1
+ping -c3 1.1.1.1
+getent hosts www.upc.edu
+```
 
-2. **Permet que aquest trànsit travessi el `forward`**, dins la taula `inet filter`, abans de la regla de `ct state related,established`. El dnat ja ha canviat la destinació, així que el port que es mira és el **del servidor intern**:
+| Comprovació | Què has de veure? |
+| --- | --- |
+| `ip route` | Una ruta `default via` amb la IP interna del servidor. |
+| Ping al servidor | Respostes: el client arriba a la porta d'enllaç. |
+| Ping a `1.1.1.1` | Respostes: el client arriba a Internet per IP. |
+| `getent hosts www.upc.edu` | Una o més adreces IP: el nom es resol. |
 
-   ```text title="Regles · nftables"
-   iifname "enp1s0" oifname "enp2s0" tcp dport 80 accept
-   ```
+Si una comprovació falla, revisa aquest pas abans de continuar. Si arribes a Internet per IP però no es resol el nom, revisa el DNS que rep el client per DHCP.
 
-3. **Valida i recarrega:**
+## Abans d'acabar
 
-   ```bash title="Terminal"
-   sudo nft -c -f /etc/nftables.conf
-   sudo systemctl restart nftables
-   ```
+Has de poder explicar:
 
-4. **Comprova-ho des de fora**, des d'un client de `puigcastellar1`:
+1. Quina targeta mira als clients i quina a Internet?
+2. Per a què hem activat l'encaminament?
+3. Què fa `masquerade`?
 
-   ```bash title="Terminal"
-   ip -brief a          # al servidor, la IP externa
-   curl http://IP-EXTERNA-DEL-SERVIDOR/
-   ```
+**Objectiu assolit:** els clients tenen Internet i pots explicar el camí que fan els seus paquets.
 
-   Ha de respondre el servei que corre a `192.168.1.10`, tot i que el client només coneix l'adreça externa del servidor.
+Per a més endavant: [ampliació opcional de redirecció de ports](../../guies/g1-5-nftables-dnat/).
 
-</details>
-
-## Criteris professionals
-
-<Callout kind="bones pràctiques">
-
-- **`policy drop` a `forward`** i obre només el que cal. El que no s'ha permès, no passa.
-- **Fes servir `ct state related,established`** per al trànsit de tornada, en lloc d'obrir el sentit contrari sencer.
-- **Configuració permanent, no de sessió.** Un `sysctl -w` o un `nft add rule` desapareixen en reiniciar.
-- **Activa NAT només a la targeta externa.** Un `masquerade` a la interna amaga qui és qui i complica qualsevol diagnòstic.
-- **Prova per capes** (ruta → servidor → IP externa → nom) abans de tocar res.
-
-</Callout>
-
-**Amb això tanques el [RA1](../../):** ja saps configurar la xarxa, muntar un servidor DHCP i donar Internet als seus clients.
+Consulta: [documentació oficial de nftables](https://wiki.nftables.org).
