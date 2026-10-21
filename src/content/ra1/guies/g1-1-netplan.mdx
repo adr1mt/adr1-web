@@ -22,17 +22,20 @@ Quan executes `netplan apply`, genera fitxers `.network` dins de `/run/systemd/n
 
 ## L'escenari d'exemple
 
-Tota la guia parteix d'aquest cas. **Són dades d'exemple**: a cada activitat tindràs una xarxa i una IP diferents, i són les que has de posar al teu fitxer.
+Tota la guia parteix d'aquest cas. **Als exàmens configurarem sempre les dues targetes manualment, amb IP estàtica.** Les adreces d'aquí són d'exemple: a cada activitat o examen has de fer servir les dades de l'enunciat. A puigcastellar1, utilitza només la IP que t'hagin assignat per no repetir la d'un altre equip.
 
 Tinc un Ubuntu Server a IsardVDI amb dues targetes:
 
-- `enp1s0`, connectada a **puigcastellar1**, en automàtic (DHCP). Rep l'adreça, la ruta per defecte i el DNS del DHCP del centre: és la sortida a Internet.
-- `enp2s0`, connectada a **personal1**, amb IP fixa. Aquí munto la meva xarxa: els clients als quals donaré servei amb [G1.2](../../guies/g1-2-kea/).
+- `enp1s0`, connectada a **puigcastellar1**, amb IP fixa, porta d'enllaç i DNS escrits a mà: és la sortida a Internet.
+- `enp2s0`, connectada a **personal1**, amb IP fixa i sense porta d'enllaç. És una petita xarxa virtual de prova que hem creat: de moment només hi ha el nostre servidor; més endavant hi connectarem els clients als quals donarem servei amb [G1.2](../../guies/g1-2-kea/). **En aquesta xarxa no hi ha cap router.**
 
 | Dada | Valor |
 | --- | --- |
-| IP fixa de `enp2s0` | `192.168.1.1/24` |
-| DNS del servidor | `1.1.1.1` (Cloudflare) |
+| IP fixa de `enp1s0` · puigcastellar1 | `192.168.236.60/22` |
+| Porta d'enllaç · puigcastellar1 | `192.168.236.1` |
+| DNS del servidor · per puigcastellar1 | `192.168.236.1` i `1.1.1.1` |
+| IP fixa de `enp2s0` · personal1 | `10.10.10.2/24` |
+| Porta d'enllaç · personal1 | Cap: no hi ha router |
 | Fitxer | `/etc/netplan/90-xarxa.yaml` |
 
 **No editem el fitxer que ja hi ha a `/etc/netplan/`.** En creem un de propi, `90-xarxa.yaml`, amb **les dues targetes**. Els motius són a l'apartat 2.
@@ -68,7 +71,7 @@ Si configures la xarxa per SSH, un error et pot tallar la connexió i deixar-te 
    sudo nano /etc/netplan/90-xarxa.yaml
    ```
 
-   Enganxa el fitxer complet de l'apartat 2, amb les dades del teu cas: les dues targetes, l'externa per DHCP i la interna amb IP fixa.
+   Enganxa el fitxer complet de sota, amb les dades del teu cas: **les dues targetes amb IP estàtica** i la porta d'enllaç només a l'externa.
 
 4. **Posa-hi els permisos correctes.** Si no ho fas, Netplan et renyarà cada vegada:
 
@@ -86,6 +89,33 @@ Si configures la xarxa per SSH, un error et pot tallar la connexió i deixar-te 
 
 </details>
 
+## El fitxer complet · model per als exàmens
+
+**Comprova les interfícies reals de la teva VM**: `enp1s0` i `enp2s0` són els noms habituals a IsardVDI, però poden canviar.
+
+```yaml title="/etc/netplan/90-xarxa.yaml"
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp1s0:                        # puigcastellar1
+      dhcp4: false
+      addresses:
+        - 192.168.236.60/22
+      nameservers:
+        addresses: [192.168.236.1, 1.1.1.1]
+      routes:
+        - to: default
+          via: 192.168.236.1
+
+    enp2s0:                        # personal1
+      dhcp4: false
+      addresses:
+        - 10.10.10.2/24
+```
+
+Tres coses del YAML que has de vigilar: la **indentació és amb espais** (mai tabuladors), cada nivell són **2 espais** més, i els dos punts van **enganxats** a la paraula.
+
 ## 2. Anàlisi del fitxer de configuració
 
 <details class="fold">
@@ -99,7 +129,7 @@ Netplan llegeix **tots** els fitxers de `/etc/netplan/` per ordre alfabètic, pe
 
 El que va **després** afegeix claus noves o substitueix les que ja hi eren. Per això el nostre és `90-xarxa.yaml`: es llegeix l'últim i mana, i l'original queda intacte. L'extensió ha de ser `.yaml`.
 
-Compte: les llistes, com `addresses`, no se substitueixen, s'acumulen. Si el fitxer del sistema ja dona una IP a `enp2s0`, la targeta acabarà amb totes dues. Mira com ha quedat la barreja amb `sudo netplan get`.
+Compte: les llistes, com `addresses` i `routes`, no se substitueixen, s'acumulen. Si el fitxer del sistema ja dona una IP estàtica o una ruta a una targeta, també hi continuarà sent. `dhcp4: false` desactiva el DHCP anterior, però no esborra aquestes llistes. Mira com ha quedat la barreja amb `sudo netplan get` abans d'aplicar-la; si hi ha adreces o rutes antigues, cal resoldre el conflicte amb el professorat.
 
 ### La capçalera
 
@@ -116,60 +146,44 @@ network:
 ### La targeta externa
 
 ```yaml title="enp1s0"
-enp1s0:              # puigcastellar1 — automàtica
-  dhcp4: true
+enp1s0:              # puigcastellar1
+  dhcp4: false
+  addresses:
+    - 192.168.236.60/22
+  nameservers:
+    addresses: [192.168.236.1, 1.1.1.1]
+  routes:
+    - to: default
+      via: 192.168.236.1
 ```
 
-- `dhcp4: true`: rep l'adreça, la ruta per defecte i el DNS del DHCP del centre.
+- `dhcp4: false`: no demana la configuració IPv4 per DHCP; l'escrivim a mà.
+- `addresses`: la IP fixa `192.168.236.60` amb prefix `/22` (màscara `255.255.252.0`).
+- `nameservers`: els DNS que farà servir el servidor per resoldre noms. Escriure'ls aquí no instal·la cap servei DNS.
+- `routes`: la ruta per defecte envia el trànsit cap a altres xarxes al router `192.168.236.1`.
+- No hi afegim `search: [mydomain, otherdomain]`: són dominis d'exemple. Només cal `search` si l'activitat indica un domini de cerca real.
 
 ### La targeta interna
 
 ```yaml title="enp2s0"
-enp2s0:              # personal1 — fixa
+enp2s0:              # personal1
   dhcp4: false
   addresses:
-    - 192.168.1.1/24
-  nameservers:
-    addresses: [1.1.1.1]
+    - 10.10.10.2/24
 ```
 
-- `addresses`: la IP fixa amb el prefix.
-- `nameservers`: el DNS que farà servir el servidor.
-- No hi posem porta d'enllaç: ho expliquem just a sota.
+- `dhcp4: false`: també configurem aquesta targeta manualment.
+- `addresses`: la IP del servidor a la xarxa interna, `10.10.10.2/24`.
+- No hi posem `routes`: a personal1 no hi ha cap router que pugui fer de porta d'enllaç.
+- Tampoc hi posem `nameservers`: de moment no hi ha cap servidor DNS en aquesta xarxa. No inventem un DNS `10.10.10.1`; el servidor ja té els DNS configurats a la targeta externa.
 
 ### La porta d'enllaç va en un sol lloc
 
-En aquesta topologia volem **una sortida preferent**: el DHCP de la targeta externa aporta la ruta per defecte. No en posem cap a personal1. Un equip pot tenir diverses rutes per defecte amb mètriques o taules diferents; això requereix un disseny explícit.
+La porta d'enllaç és un router que permet arribar a altres xarxes. A **puigcastellar1** és `192.168.236.1`, i per això hi escrivim l'única ruta per defecte d'aquest exemple.
 
-Si en algun cas l'has d'escriure a mà, la sintaxi actual és aquesta. La forma antiga `gateway4:` està obsoleta i Netplan t'avisarà:
+A **personal1** només hi ha el servidor i, més endavant, els clients. Com que **no hi ha router**, no hi posem porta d'enllaç. Els equips de `10.10.10.0/24` es podran comunicar directament entre ells, sense passar per cap router. Tenir dues targetes no converteix automàticament el servidor en router: això ho configurarem a [G1.3](../../guies/g1-3-nftables/).
 
-```yaml title="Fitxer YAML · Netplan"
-      routes:
-        - to: default
-          via: 192.168.1.254
-```
-
-### El fitxer complet
-
-**Comprova les interfícies reals de la teva VM**: `enp1s0` i `enp2s0` són els noms habituals a IsardVDI, però poden canviar.
-
-```yaml title="/etc/netplan/90-xarxa.yaml"
-network:
-  version: 2
-  renderer: networkd
-  ethernets:
-    enp1s0:                        # puigcastellar1 — automàtica
-      dhcp4: true
-
-    enp2s0:                        # personal1 — fixa
-      dhcp4: false
-      addresses:
-        - 192.168.1.1/24
-      nameservers:
-        addresses: [1.1.1.1]
-```
-
-Tres coses del YAML que has de vigilar: la **indentació és amb espais** (mai tabuladors), cada nivell són **2 espais** més, i els dos punts van **enganxats** a la paraula.
+Fem servir `routes` amb `to: default` i `via`, com al fitxer complet. La forma antiga `gateway4:` està obsoleta i Netplan t'avisarà.
 
 </details>
 
@@ -189,13 +203,15 @@ Tres coses del YAML que has de vigilar: la **indentació és amb espais** (mai t
    ip -brief a
    ```
 
-   `enp1s0` ha de tenir una adreça del centre; `enp2s0`, la `192.168.1.1/24`.
+   En aquest exemple, `enp1s0` ha de tenir `192.168.236.60/22`; `enp2s0`, `10.10.10.2/24`.
 
 3. **Hi ha una sola ruta per defecte**, i surt per la targeta externa:
 
    ```bash title="Terminal"
    ip route
    ```
+
+   Hi has de veure `default via 192.168.236.1 dev enp1s0` i una ruta directa a `10.10.10.0/24` per `enp2s0`. Aquesta última no porta `via`: és una xarxa connectada directament, sense porta d'enllaç.
 
 4. **El DNS és el que has configurat:**
 
