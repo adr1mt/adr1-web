@@ -6,8 +6,12 @@ Web pública del módulo 0227 (piloto Astro): RA1 (DHCP), blog y herramientas.
 Fuente del RA1: repo privado `adr1mt/m7-serveis-en-xarxa` (HTML); aquí el MDX
 se copia a mano. RA2–RA8 no tienen web pública hasta que se migren.
 
-## Estado (19/10/2026)
+## Estado (22/10/2026)
 
+- Parche de seguridad: `npm audit fix` sube vite 8.3.2 → 8.3.5 (y transitivas
+  de parche). `npm audit`: 0 vulnerabilidades. Verificado `npm run check`,
+  `npm run build` (22 páginas, 15 indexadas) y la portada en `npm run preview`.
+  Rama `fix/security-oct-2026`, con PR abierto.
 - Guía nueva G1.0 «Guia: terminal de Linux»
   (`src/content/ra1/guies/g1-0-terminal-linux.mdx`), convertida del HTML
   privado en el commit `0888dab`. Sin test, como toda guía.
@@ -27,8 +31,9 @@ se copia a mano. RA2–RA8 no tienen web pública hasta que se migren.
 
 ## Siguiente paso
 
-1. Comprobar G1.0 y T1.2 en la web desplegada cuando acabe GitHub Actions.
-2. Al portar cambios del repo privado, cruzar las actividades por contenido,
+1. Fusionar el PR de seguridad y hacer `git pull` en la copia local.
+2. Comprobar G1.0 y T1.2 en la web desplegada cuando acabe GitHub Actions.
+3. Al portar cambios del repo privado, cruzar las actividades por contenido,
    no por número de fichero.
 
 ## Diferencias conscientes con el HTML de G1.0
