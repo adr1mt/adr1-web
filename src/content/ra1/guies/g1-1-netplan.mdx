@@ -27,7 +27,7 @@ La configuració inicial acostuma a obtenir la IP automàticament per DHCP. Pots
 1. **Identifica les targetes** i els seus noms:
 
    ```bash title="Terminal"
-   ip -brief a
+   ip -c a
    ```
 
    Poden dir-se `enp1s0` i `enp2s0`, però comprova quina està connectada a puigcastellar1 i quina a personal1. No donis per fet l'ordre.
@@ -65,7 +65,7 @@ La indentació del YAML es fa amb **espais, mai tabuladors**. En l'exemple cada 
 
 **És un exemple, no una solució d'examen per copiar sense canvis.** Escriu aquesta estructura en el fitxer que has obert, substituint els marcadors:
 
-- `nom_targeta1` i `nom_targeta2`: els noms reals de les teves interfícies.
+- `nom_targeta1` i `nom_targeta2`: els noms reals de les teves interfícies (el nom que apareix per a cada targeta quan executes `ip -c a`).
 - `192.168.236.X/22`: substitueix la `X` pel número assignat pel professorat. La `X` és un marcador i no s'ha d'escriure literalment al fitxer.
 - `10.10.10.2/8`: un exemple d'IP interna; substitueix tant la IP com el prefix pels de l'enunciat.
 - La porta d'enllaç i els DNS són els de puigcastellar1 en aquest exemple; adapta'ls si l'enunciat indica altres dades.
@@ -130,7 +130,7 @@ Tingues oberta la consola de la VM a IsardVDI quan canviïs la xarxa. Si treball
 1. **Les dues targetes tenen les IP i els prefixos de l'enunciat:**
 
    ```bash title="Terminal"
-   ip -brief a
+   ip -c a
    ```
 
 2. **Hi ha una sola ruta per defecte i surt per puigcastellar1:**
