@@ -66,7 +66,7 @@ La indentació del YAML es fa amb **espais, mai tabuladors**. En l'exemple cada 
 **És un exemple, no una solució d'examen per copiar sense canvis.** Escriu aquesta estructura en el fitxer que has obert, substituint els marcadors:
 
 - `nom_targeta1` i `nom_targeta2`: els noms reals de les teves interfícies.
-- `IP1/MÀSCARA`: la IP assignada a la targeta externa i el prefix numèric, per exemple `/22`. No hi escriguis literalment `IP1/MÀSCARA` ni una màscara amb punts.
+- `192.168.236.X/22`: substitueix la `X` pel número assignat pel professorat. La `X` és un marcador i no s'ha d'escriure literalment al fitxer.
 - `10.10.10.2/8`: un exemple d'IP interna; substitueix tant la IP com el prefix pels de l'enunciat.
 - La porta d'enllaç i els DNS són els de puigcastellar1 en aquest exemple; adapta'ls si l'enunciat indica altres dades.
 
@@ -78,7 +78,7 @@ network:
     nom_targeta1:                  # puigcastellar1 · enp1s0 per exemple
       dhcp4: false
       addresses:
-        - IP1/MÀSCARA
+        - 192.168.236.X/22
       nameservers:
         addresses: [192.168.236.1, 1.1.1.1]
       routes:
