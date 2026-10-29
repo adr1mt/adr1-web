@@ -1,0 +1,431 @@
+---
+ref: G2.1
+title: "Guia: BIND 9"
+description: "El resolutor, les zones pròpies i el servidor secundari."
+---
+
+import Callout from "../../../components/Callout.astro";
+
+## Què hi ha en aquesta guia
+
+Documentació oficial: [bind9.readthedocs.io](https://bind9.readthedocs.io)
+
+- Punt de partida: Ubuntu Server amb IP fixa a la targeta interna.
+- El paquet es diu `bind9` i el servei, `named`.
+- Tres parts: el resolutor, les zones i el secundari. Es fan en aquest ordre.
+
+## Per què BIND
+
+**BIND** (_Berkeley Internet Name Domain_) és el servidor DNS més utilitzat de la història d'Internet, i el que fan servir bona part dels servidors arrel. El programa es diu `named`, de _name daemon_.
+
+El fem servir perquè, amb un sol paquet, cobreix les tres feines del mòdul:
+
+- **Resolutor** amb memòria cau per als clients de la teva xarxa.
+- **Autoritatiu** de les zones que tu declaris.
+- **Transferències de zona** entre un primari i un secundari.
+
+Alternatives com `dnsmasq` són més senzilles, però no fan zones jeràrquiques ni transferències: es queden curtes per al que has de practicar.
+
+## On és cada cosa
+
+Tot viu a `/etc/bind/`. El fitxer principal, `named.conf`, gairebé no té contingut: només inclou els altres tres. Tu no el tocaràs mai.
+
+| Fitxer | Què hi va |
+|---|---|
+| `named.conf.options` | Configuració global: qui pot preguntar, forwarders, per on escolta |
+| `named.conf.local` | Les teves zones |
+| `named.conf.default-zones` | Les zones que porta de sèrie. No es toca |
+| `zones/` | Carpeta que crearàs tu per als fitxers de zona |
+
+El servei s'anomena `named` (amb `bind9` com a àlies), i el paquet `bind9-utils` hi afegeix les eines de comprovació.
+
+## Les cinc directives que has de decidir
+
+Tot això va dins del bloc `options` de `named.conf.options`. Són poques i totes tenen conseqüències de seguretat.
+
+| Directiva | Què decideix |
+|---|---|
+| `listen-on` | Per quines adreces escolta. La de `personal1`, no totes |
+| `allow-query` | Qui pot fer consultes. Aquí hi va la teva ACL |
+| `recursion` | Si busca respostes que no són seves. Sí, però només per als teus |
+| `forwarders` | A qui reenvia el que no sap. Si no n'hi ha, va a l'arrel |
+| `dnssec-validation` | Si comprova la signatura de les respostes. Es deixa a `auto` |
+
+Una **ACL** és una llista amb nom: la declares un cop, a dalt del fitxer, i la fas servir a dins on calgui.
+
+## Un resolutor per a la xarxa 192.168.1.0/24
+
+Aquest és el fitxer sencer d'un servidor que dona servei només a la seva xarxa interna:
+
+```text title="Configuració · BIND 9"
+acl interna { 192.168.1.0/24; localhost; };
+
+options {
+    directory "/var/cache/bind";
+
+    listen-on { 127.0.0.1; 192.168.1.8; };
+    allow-query { interna; };
+    recursion yes;
+    allow-recursion { interna; };
+
+    forwarders { 9.9.9.9; 1.1.1.1; };
+
+    dnssec-validation auto;
+    listen-on-v6 { none; };
+};
+```
+
+Llegit en veu alta: escolta per la seva IP interna, només accepta consultes de la xarxa `192.168.1.0/24`, busca el que no sap i, per fer-ho, ho pregunta a Quad9 i a Cloudflare.
+
+## Forwarders: quan sí i quan no
+
+Sense `forwarders`, el teu BIND resol pel seu compte: comença pels servidors arrel i va baixant per l'arbre. Funciona i és el més independent.
+
+Amb `forwarders`, delega la feina a un resolutor gran, que ja té mig Internet a la memòria cau. Sol ser **més ràpid**, i a més et serveix quan la xarxa on ets no deixa sortir cap al port 53 lliurement.
+
+A l'aula fes servir forwarders. Però recorda que, si un dia poses una zona interna amb el mateix nom que una de pública, hauràs de desactivar-los _per a aquella zona_.
+
+## Muntar el resolutor
+
+Amb una màquina que ja tingui IP fixa a `personal1`: un servidor DNS no pot escoltar per una targeta sense adreça.
+
+1. **Instal·la el servidor i les eines:**
+
+   ```bash title="Terminal"
+   sudo apt update
+   sudo apt install -y bind9 bind9-utils dnsutils
+   ```
+
+2. **Desa una còpia** abans de tocar res:
+
+   ```bash title="Terminal"
+   sudo cp /etc/bind/named.conf.options \
+           /etc/bind/named.conf.options.original
+   ```
+
+3. **Escriu les opcions** amb la teva xarxa i la teva IP:
+
+   ```bash title="Terminal"
+   sudo nano /etc/bind/named.conf.options
+   ```
+
+   Fes servir l'exemple d'aquesta pàgina com a model.
+
+4. **Valida la sintaxi.** Si no diu res, és que està bé:
+
+   ```bash title="Terminal"
+   sudo named-checkconf
+   ```
+
+5. **Reinicia i comprova** que el servei escolta al port 53:
+
+   ```bash title="Terminal"
+   sudo systemctl restart named
+   systemctl status named
+   sudo ss -ulnp | grep :53
+   ```
+
+6. **Pregunta-li a ell**, primer des del mateix servidor i després des del client:
+
+   ```bash title="Terminal"
+   dig @127.0.0.1 www.upc.edu
+   dig @192.168.1.8 www.upc.edu
+   ```
+
+   Repeteix la consulta i compara Query time a la sortida completa. La cau pot reduir el temps, però no ho garanteix; registra els valors observats, el servidor consultat i el moment de la prova.
+
+<Callout kind="nota">
+
+**Ubuntu 26.04** A 26.04 el paquet porta BIND 9.20 i el servei es diu `named`. En documentació antiga el trobaràs com `bind9`: continua funcionant com a àlies, i `systemctl status bind9` et respon el mateix que `named`.
+
+</Callout>
+
+## Declarar les zones
+
+Les zones es declaren a `named.conf.local`. Cada declaració diu tres coses: com es diu la zona, quin paper hi fa aquest servidor i on són les dades.
+
+```text title="Configuració · BIND 9"
+zone "adria.internal" {
+    type primary;
+    file "/etc/bind/zones/db.adria.internal";
+};
+
+zone "1.168.192.in-addr.arpa" {
+    type primary;
+    file "/etc/bind/zones/db.192.168.1";
+};
+```
+
+`type primary` vol dir que aquest servidor té l'original, escrit per tu. La documentació antiga en diu `master`: és el mateix, però el nom vigent és `primary`.
+
+## Fitxer de zona directa
+
+Per a `adria.internal`, amb el servidor a la `192.168.1.8`:
+
+```text title="Configuració · BIND 9"
+$TTL 600
+@   IN  SOA ns1.adria.internal. admin.adria.internal. (
+            2026080101  ; Serial
+            3600        ; Refresh
+            1800        ; Retry
+            604800      ; Expire
+            600 )       ; Minimum
+
+@       IN  NS      ns1.adria.internal.
+ns1     IN  A       192.168.1.8
+www     IN  A       192.168.1.8
+portatil IN A       192.168.1.50
+intranet IN CNAME   www.adria.internal.
+@       IN  MX  10  correu.adria.internal.
+correu  IN  A       192.168.1.9
+@       IN  TXT     "Xarxa interna de proves"
+```
+
+La `@` vol dir «la zona sencera», aquí `adria.internal.`. I el correu de l'administrador s'escriu amb un punt on aniria l'arrova: `admin.adria.internal.` és `admin@adria.internal`.
+
+## El punt final no és decoració
+
+<Callout kind="recordatori">
+
+Un nom acabat en punt és **absolut**: es fa servir tal com és. Un nom sense punt és **relatiu**: BIND hi enganxa el nom de la zona al darrere.
+
+Per això `www` dins de `adria.internal` vol dir `www.adria.internal.`, però si escrius `www.adria.internal` sense punt, acabes amb `www.adria.internal.adria.internal.`, que no existeix. És l'error més freqüent de tots.
+
+</Callout>
+
+## Fitxer de zona inversa
+
+Les mateixes màquines, al revés. Aquí el número de l'esquerra és l'últim octet:
+
+```text title="Configuració · BIND 9"
+$TTL 600
+@   IN  SOA ns1.adria.internal. admin.adria.internal. (
+            2026080101 3600 1800 604800 600 )
+
+@       IN  NS      ns1.adria.internal.
+8       IN  PTR     ns1.adria.internal.
+9       IN  PTR     correu.adria.internal.
+50      IN  PTR     portatil.adria.internal.
+```
+
+Els noms de la dreta van **tots amb punt final**: són d'una altra zona. I fixa't que `www` no hi surt: la inversa dona _un_ nom per adreça, i el bo és el de la màquina, no el de l'àlies.
+
+## Crear i comprovar una zona
+
+1. **Crea la carpeta** de les teves zones:
+
+   ```bash title="Terminal"
+   sudo mkdir -p /etc/bind/zones
+   ```
+
+2. **Declara les dues zones** a `named.conf.local` i escriu els dos fitxers, seguint els exemples d'aquesta pàgina.
+
+3. **Valida cada zona per separat.** El primer argument és el nom de la zona i el segon el fitxer:
+
+   ```bash title="Terminal"
+   sudo named-checkzone adria.internal \
+        /etc/bind/zones/db.adria.internal
+   ```
+
+   Ha de dir `OK` i el número de serial. Fes el mateix amb la inversa.
+
+4. **Valida la configuració i recarrega** sense aturar el servei:
+
+   ```bash title="Terminal"
+   sudo named-checkconf
+   sudo rndc reload
+   ```
+
+5. **Comprova-ho amb `dig`**, preguntant al teu servidor:
+
+   ```bash title="Terminal"
+   dig @192.168.1.8 www.adria.internal +short
+   dig @192.168.1.8 adria.internal MX +short
+   dig @192.168.1.8 -x 192.168.1.8 +short
+   ```
+
+   La resposta ha de portar la marca `aa`: ets tu qui té l'autoritat.
+
+## Les dues declaracions
+
+Al **primari**, s'autoritza qui es pot endur la zona i a qui s'avisa:
+
+```text title="Configuració · BIND 9"
+zone "adria.internal" {
+    type primary;
+    file "/etc/bind/zones/db.adria.internal";
+    allow-transfer { 192.168.1.9; };
+    also-notify { 192.168.1.9; };
+};
+```
+
+Al **secundari**, d'on ve la zona i on la desa:
+
+```text title="Configuració · BIND 9"
+zone "adria.internal" {
+    type secondary;
+    file "/var/cache/bind/db.adria.internal";
+    primaries { 192.168.1.8; };
+};
+```
+
+A la zona hi ha d'haver un registre **NS per a cada servidor**, primari i secundari: si no, per a la resta del món el secundari no existeix.
+
+## Muntar un secundari
+
+Amb dues màquines a la mateixa xarxa: la teva com a primari i una altra com a secundari.
+
+1. **Al fitxer de zona del primari**, dona d'alta el segon servidor: un `NS` més per a la zona i el seu `A`. Sense això la zona es transfereix igualment, però ningú de fora sabrà que el secundari existeix:
+
+   ```text title="Configuració · BIND 9"
+   @       IN  NS      ns2.adria.internal.
+   ns2     IN  A       192.168.1.9
+   ```
+
+2. **A la declaració de la zona**, afegeix `allow-transfer` i `also-notify`, apuja el **serial** i recarrega:
+
+   ```bash title="Terminal"
+   sudo named-checkconf
+   sudo rndc reload
+   ```
+
+3. **Comprova des del secundari** que el primari el deixa passar:
+
+   ```bash title="Terminal"
+   dig @192.168.1.8 adria.internal AXFR
+   ```
+
+   Si surt la zona sencera, endavant. Si surt `Transfer failed`, revisa l'`allow-transfer` abans de continuar.
+
+4. **Al secundari**, instal·la BIND i declara la zona amb `type secondary`, sense escriure cap fitxer de zona.
+
+5. **Recarrega i mira els registres**: hi has de veure la transferència:
+
+   ```bash title="Terminal"
+   sudo rndc reload
+   sudo journalctl -u named -n 20 | grep -i transfer
+   ```
+
+6. **Comprova que el fitxer ha aparegut sol** i que el secundari respon:
+
+   ```bash title="Terminal"
+   ls -l /var/cache/bind/
+   dig @192.168.1.9 www.adria.internal +short
+   ```
+
+   Ara fes una prova de veritat: canvia un registre al primari, apuja el serial i recarrega. No has de tocar res al secundari: en pocs segons el seu registre ha de dir `received notify for zone` i, tot seguit, `transferred serial` amb el número nou.
+
+## Comprovar-ho des d'un client, no des del servidor
+
+Que el servidor es respongui a si mateix no vol dir que doni servei. Aquesta prova es fa des d'una altra màquina de la xarxa.
+
+1. **Respon a qui li pregunta:**
+
+   ```bash title="Terminal"
+   dig @192.168.1.8 www.adria.internal +short
+   ```
+
+   Si no torna res, mira l'`allow-query` i el `listen-on` abans de tocar la zona.
+
+2. **És ell qui mana a la zona.** Sense `+short`, la resposta ha de portar la marca `aa` i `status: NOERROR`:
+
+   ```bash title="Terminal"
+   dig @192.168.1.8 adria.internal SOA
+   ```
+
+3. **Els dos servidors diuen el mateix.** Si has muntat el secundari, compara'n els serials:
+
+   ```bash title="Terminal"
+   dig @192.168.1.8 adria.internal SOA +short
+   dig @192.168.1.9 adria.internal SOA +short
+   ```
+
+   Han de coincidir. Si el del secundari va endarrerit, la transferència no s'ha fet.
+
+## Bones pràctiques
+
+<Callout kind="bones pràctiques">
+
+- **Còpia de l'original** abans de la primera edició, sempre.
+- **`named-checkconf` i `named-checkzone`** abans de recarregar.
+- **Escolta només per on has de servir**, mai per la targeta que va a Internet.
+- **Apuja el serial a cada canvi**, amb format de data i sense excepcions.
+- **Punt final** a tots els noms absoluts, i `allow-transfer` tancat.
+
+</Callout>
+
+## Problemes
+
+### El servei no arrenca
+
+**Causa** Un punt i coma que falta, o una clau sense tancar. La sintaxi de BIND no perdona.
+
+**Solució** `sudo named-checkconf` et diu el fitxer i la línia exacta: `named.conf.options:5: missing ';' before 'allow-query'`. Després, `journalctl -u named -n 30`.
+
+### El client rep `REFUSED`
+
+**Causa** El servidor funciona, però no el deixa preguntar: no és dins de l'ACL.
+
+**Solució** Comprova que la xarxa de l'`acl` és la del client, amb la màscara correcta.
+
+### Des del client no hi ha resposta, i des del servidor sí
+
+**Causa** `listen-on` no inclou la IP de `personal1`, o el servei escolta només a `127.0.0.1`.
+
+**Solució** `sudo ss -ulnp | grep :53` al servidor i mira per quines adreces escolta de veritat.
+
+### `named-checkzone` es queixa de `NS record` o de l'SOA
+
+**Causa** Falta el registre NS de la zona, o el nom del SOA no té punt final.
+
+**Solució** El missatge és clar: `has no NS records` i `not loaded due to errors`. Compara la capçalera amb l'exemple, caràcter a caràcter.
+
+### El nom es resol amb el domini repetit dues vegades
+
+**Causa** Has escrit un nom absolut sense punt final.
+
+**Solució** `dig @elteuservidor nom` i mira la resposta sencera: hi veuràs `www.adria.internal.adria.internal.` La zona carrega igual i `named-checkzone` no es queixa; l'única pista és aquesta.
+
+### Has editat la zona i el canvi no es veu
+
+**Causa** No has apujat el serial, o no has recarregat, o el client té la resposta a la memòria cau.
+
+**Solució** Serial, `rndc reload` i pregunta amb `dig @servidor`, que se salta la cau del client.
+
+### `Transfer failed` als registres del secundari
+
+**Causa** El primari no l'autoritza, o no hi ha connexió pel port 53 **TCP**.
+
+**Solució** Prova `dig @primari zona AXFR` des del secundari: si falla també, és l'`allow-transfer`.
+
+### El secundari serveix dades antigues
+
+**Causa** El serial del primari no ha pujat després del canvi.
+
+**Solució** Compara els dos serials: `dig @primari zona SOA +short` i el mateix contra el secundari.
+
+### El secundari no desa el fitxer
+
+**Causa** El camí no és escrivible per al servei. Les zones secundàries van a `/var/cache/bind/`.
+
+**Solució** Canvia el `file` i mira l'error exacte a `journalctl -u named`.
+
+## Resum
+
+| Comanda | Per a què serveix |
+|---|---|
+| `named-checkconf` | Validar la configuració |
+| `systemctl restart named` | Aplicar els canvis |
+| `journalctl -u named -f` | Veure què diu el servei |
+| `ss -ulnp \| grep :53` | Comprovar per on escolta |
+| `dig @<servidor> <nom>` | Provar-lo de veritat |
+| `named-checkzone <zona> <fitxer>` | Validar un fitxer de zona |
+| `rndc reload` | Recarregar sense aturar el servei |
+| `rndc reload <zona>` | Recarregar només una zona |
+| `dig @<servidor> <nom> <tipus>` | Comprovar un registre concret |
+| `dig @<servidor> -x <adreça>` | Comprovar la resolució inversa |
+| `dig @<primari> <zona> AXFR` | Provar la transferència a mà |
+| `dig @<servidor> <zona> SOA +short` | Comparar serials |
+| `rndc reload` | Recarregar el primari després d'un canvi |
+| `rndc retransfer <zona>` | Forçar la descàrrega al secundari |
+| `journalctl -u named \| grep transfer` | Veure si la còpia s'ha fet |

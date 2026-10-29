@@ -1,16 +1,17 @@
 ---
-import { SECTIONS, sectionOf, pageUrl, href, type Ra1Page } from '../lib/site';
+import { SECTIONS, sectionOf, pageUrl, raLabel, raUrl, type Ra, type RaPage } from '../lib/site';
 
 interface Props {
-  pages: Ra1Page[];
+  ra: Ra;
+  pages: RaPage[];
   currentId?: string;
 }
-const { pages, currentId } = Astro.props;
+const { ra, pages, currentId } = Astro.props;
 ---
 
-<nav class="ra1-nav" aria-label="Pàgines del RA1">
-  <a class="section-title" href={href('/ra1/')} aria-current={currentId ? undefined : 'page'}>
-    RA1 · Servei DHCP
+<nav class="ra-nav" aria-label={`Pàgines del RA${ra.n}`}>
+  <a class="section-title" href={raUrl(ra)} aria-current={currentId ? undefined : 'page'}>
+    {raLabel(ra)}
   </a>
   {SECTIONS.map((section) => (
     <div class="section">
@@ -34,7 +35,7 @@ const { pages, currentId } = Astro.props;
 </script>
 
 <style>
-  .ra1-nav { font-size: 0.875rem; line-height: 1.5; }
+  .ra-nav { font-size: 0.875rem; line-height: 1.5; }
   .section { margin-bottom: 1.25rem; }
   .section-title {
     display: block;

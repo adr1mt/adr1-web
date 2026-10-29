@@ -1,0 +1,203 @@
+---
+ref: T2.2
+title: "L'arbre del DNS"
+description: "Com és possible que un sistema amb milers de milions de noms respongui en mil·lisegons."
+---
+
+import Callout from "../../../components/Callout.astro";
+import Flow from "../../../components/Flow.astro";
+import Question from "../../../components/Question.astro";
+import Quiz from "../../../components/Quiz.astro";
+
+## Què sabràs fer en acabar
+
+- Llegir un nom de domini de dreta a esquerra, de més general a més concret, i saber què és cada part.
+- Explicar què és una zona d'autoritat i què és una delegació.
+- Distingir un servidor **recursiu** d'un d'**autoritatiu**.
+- Seguir una resolució sencera amb `dig +trace`.
+- Entendre el paper del TTL i de la memòria cau.
+
+## Una base de dades repartida entre tots
+
+Ningú té la llista sencera de noms d'Internet: seria impossible de mantenir. El DNS és una base de dades **distribuïda i jeràrquica**, en forma d'arbre invertit.
+
+A dalt hi ha l'**arrel**, que s'escriu amb un punt sol: `.`. Per sota, els dominis de primer nivell o **TLD** (`.net`, `.cat`, `.es`). Per sota, els dominis registrats, i encara més avall els subdominis.
+
+Un nom es llegeix **de dreta a esquerra**, de més general a més concret. A `moodle.elpuig.xeill.net`, el TLD és `.net`, el domini és `xeill.net`, el subdomini `elpuig` i la màquina `moodle`.
+
+## Zones d'autoritat i delegació
+
+Cada tros de l'arbre té un responsable. Aquest tros es diu **zona d'autoritat**: el conjunt de noms dels quals un servidor concret té les dades bones.
+
+Quan el responsable d'una zona vol que una branca la gestioni algú altre, la **delega**: hi deixa un registre que diu «per a tot això, pregunta a aquell servidor». Així els servidors arrel deleguen cada TLD, i el responsable de `xeill.net` pot delegar `elpuig.xeill.net`.
+
+Aquesta és la clau de tot: **ningú ho sap tot, però tothom sap a qui preguntar**. El sistema creix sense que cap servidor s'hagi de fer més gran.
+
+## Recursiu o autoritatiu
+
+Es diuen tots dos «servidor DNS», però fan feines oposades. No confondre'ls és el que més ajuda a entendre el servei.
+
+|  | Recursiu | Autoritatiu |
+|---|---|---|
+| **A qui serveix** | Als clients de la seva xarxa | A tot Internet |
+| **Què sap** | Res propi: ho va a buscar | Només la seva zona |
+| **Té memòria cau** | Sí, és la seva raó de ser | No li cal |
+| **Exemple** | `9.9.9.9`, el del teu centre | Els que responen per `upc.edu` |
+
+Un mateix servidor pot fer **totes dues coses**, i és el que faràs a les activitats: recursiu per als clients de `personal1` i autoritatiu de la teva zona. Els productes més estesos són **BIND**, **Unbound** i **Knot**.
+
+## Una resolució, salt a salt
+
+Preguntes per `moodle.elpuig.xeill.net` i el recursiu no en sap res. Comença per dalt i va baixant:
+
+<Flow steps={[{"n": "01", "t": "ARREL", "d": "«Jo no ho sé, però de .net se n'encarreguen aquests.»"}, {"n": "02", "t": "TLD .net", "d": "«De xeill.net, pregunta a aquells altres.»"}, {"n": "03", "t": "AUTORITATIU", "d": "«L'adreça de moodle és aquesta.»"}]} />
+
+Ho pots veure tu mateix, salt per salt:
+
+```bash title="Terminal"
+dig moodle.elpuig.xeill.net +trace
+```
+
+Tres consultes per a una resposta. Per això **la memòria cau és imprescindible**: la segona vegada, res d'això torna a passar.
+
+## El TTL: quant dura una resposta
+
+Cada resposta DNS ve amb un **TTL** (_Time To Live_), en segons. És el temps que qui la rep la pot guardar abans de tornar a preguntar. El decideix **l'amo de la zona**, no qui pregunta.
+
+Té una conseqüència pràctica que et trobaràs sempre:
+
+- TTL **alt** (hores): menys consultes, però els canvis triguen a veure's.
+- TTL **baix** (minuts): els canvis es propaguen ràpid, però hi ha més trànsit.
+
+Per això, abans d'una migració prevista, es baixa el TTL uns dies; i quan tot funciona, es torna a pujar.
+
+## «He canviat la IP i mig món encara veu l'antiga»
+
+Una empresa canvia de servidor i actualitza el registre. Uns usuaris veuen la web nova immediatament i altres continuen a l'antiga durant hores. No hi ha cap error: cadascú té la resposta guardada amb el TTL que hi havia _abans_ del canvi.
+
+Mentre duri, els dos servidors han de funcionar. Apagar l'antic el mateix dia del canvi és l'error clàssic, i deixa fora els usuaris que encara el tenen a la memòria cau.
+
+De la mateixa manera, a classe: si canvies un registre i el client no ho veu, sovint no t'has equivocat, només has d'esperar o buidar la cau.
+
+## El resolutor obert que va acabar en un atac
+
+Un servidor DNS que accepta consultes de tot Internet i fa recursió és un **resolutor obert**. No és només una imprudència: és una arma.
+
+L'atacant envia consultes petites al teu servidor falsificant l'adreça d'origen, i les respostes, molt més grans, van a parar a la víctima. Amb pocs servidors com el teu es fabriquen atacs de denegació de servei considerables.
+
+Per això tot resolutor ha de limitar qui li pot preguntar. Un servidor de la teva xarxa serveix la teva xarxa, i punt.
+
+## Recórrer l'arbre amb dig
+
+1. **Mira qui té l'autoritat** sobre un domini conegut:
+
+   ```bash title="Terminal"
+   dig upc.edu NS +short
+   ```
+
+2. **Pregunta directament a l'autoritatiu**, saltant-te tota la cadena:
+
+   ```bash title="Terminal"
+   dig @<un dels NS> www.upc.edu
+   ```
+
+   La resposta arriba amb la marca `aa` (_authoritative answer_).
+
+3. **Demana-li un nom que no sigui seu** i mira què passa:
+
+   ```bash title="Terminal"
+   dig @<un dels NS> www.wikipedia.org
+   ```
+
+   No te'l resoldrà: un autoritatiu no fa de recursiu. Fixa't en l'estat de la capçalera (`status`) i en si hi ha `ANSWER SECTION`.
+
+4. **Segueix la resolució sencera** des de l'arrel:
+
+   ```bash title="Terminal"
+   dig www.upc.edu +trace
+   ```
+
+5. **Observa el TTL baixant.** Repeteix dues vegades amb uns segons de diferència:
+
+   ```bash title="Terminal"
+   dig www.upc.edu | grep -A1 "ANSWER SECTION"
+   ```
+
+   Compara el número de la segona columna: és el TTL. Pot baixar si el resolvedor conserva la resposta; si la renova o respon un altre node, pot tornar a pujar.
+
+## Bones pràctiques
+
+<Callout kind="bones pràctiques">
+
+- **Un recursiu no s'obre a Internet.** Serveix només la teva xarxa; si no, l'usaran per a atacs.
+- **Un autoritatiu no fa recursió.** Respon de la seva zona i prou.
+- **Dos servidors per zona** com a mínim: és el que demana el DNS des del primer dia.
+- **Baixa el TTL abans d'un canvi previst** i torna'l a pujar després.
+- **Comprova sempre contra l'autoritatiu** amb `dig @servidor`: la cau amaga els errors.
+
+</Callout>
+
+## Problemes
+
+### El `+trace` escup línies de `network unreachable`
+
+**Causa** Alguns servidors arrel i de TLD tenen adreça IPv6, i la teva xarxa no en té. `dig` ho prova, no arriba, i tira per l'adreça IPv4.
+
+**Solució** Cap: la resolució acaba bé igualment. Si vols la sortida neta, `dig -4 nom +trace`.
+
+### `dig` respon `NXDOMAIN`
+
+**Causa** El nom no existeix a la zona. Sovint és una errada d'escriptura o falta el punt final.
+
+**Solució** Comprova el nom sencer i pregunta directament a l'autoritatiu.
+
+### `SERVFAIL` en preguntar per un domini
+
+**Causa** El servidor ho ha intentat i no se n'ha sortit: no arriba als autoritatius o falla la validació DNSSEC.
+
+**Solució** Prova el mateix nom contra `9.9.9.9`. Si allà va, el problema és del teu servidor.
+
+### Un nom es resol des de fora i des de dins no
+
+**Causa** El teu servidor intern té una zona amb el mateix nom i respon ell, sense saber-ho tot.
+
+**Solució** Compara `dig @elteuservidor nom` amb `dig @9.9.9.9 nom`.
+
+## Resum
+
+- El DNS és un **arbre**: arrel, TLD, dominis i subdominis, llegit de dreta a esquerra.
+- Una **zona d'autoritat** és el tros del qual un servidor té les dades bones.
+- **Delegar** és dir «d'aquesta branca se n'encarrega aquell servidor».
+- El **recursiu** busca per als clients; l'**autoritatiu** respon de la seva zona.
+- El **TTL** mana quant es guarda una resposta a la memòria cau.
+
+| Comanda | Per a què serveix |
+|---|---|
+| `dig <domini> NS` | Qui té l'autoritat sobre la zona |
+| `dig @<servidor> <nom>` | Preguntar a un servidor concret |
+| `dig <nom> +trace` | Seguir la resolució des de l'arrel |
+| `dig <nom> +short` | Només la resposta |
+| `dig -x <adreça>` | Resolució inversa |
+
+**Següent:** a _[T2.3](../../teoria/t2-3-zones-i-registres/) · Zones i registres_ veuràs què hi ha dins d'una zona pròpia.
+
+## Comprova el que has après
+
+<Quiz>
+  <Question id="t2-2-lectura" type="single" statement="A <code>aula3.smx.institut.cat</code>, quin és el TLD?" explanation="El DNS distribueix autoritat entre zones; no és una única llista central de tots els noms." options={[["<code>aula3</code>", false], ["<code>institut</code>", false], ["<code>cat</code>", true], ["<code>smx</code>", false]]} />
+  <Question id="t2-2-tipus" type="single" statement="Quina és la diferència principal entre un servidor recursiu i un d'autoritatiu?" explanation="Un resolvedor cerca respostes; un autoritatiu respon per les zones que gestiona." options={[["El recursiu treballa amb UDP i l'autoritatiu amb TCP", false], ["El recursiu busca la resposta per als clients; l'autoritatiu només respon de la seva zona", true], ["L'autoritatiu té memòria cau i el recursiu no", false], ["El recursiu només serveix noms inventats", false]]} />
+  <Question id="t2-2-delegacio" type="single" statement="Què vol dir que una zona està delegada?" explanation="La delegació assenyala els servidors responsables d’una part de l’arbre amb registres NS." options={[["Que la responsabilitat d'una branca passa a un altre servidor de noms", true], ["Que la zona s'ha copiat a un servidor secundari", false], ["Que el domini ha caducat", false], ["Que el servidor deixa de fer recursió", false]]} />
+  <Question id="t2-2-ttl" type="single" statement="Has canviat una adreça a la teva zona i un client encara veu l'antiga. Què ho explica millor?" explanation="El TTL limita quant temps es pot conservar una resposta a la memòria cau." options={[["El client té l'adreça a <code>/etc/hosts</code> segur", false], ["Té la resposta antiga a la memòria cau i encara no s'ha esgotat el TTL", true], ["El servidor autoritatiu ha deixat de respondre", false], ["Cal reiniciar el client perquè agafi el canvi", false]]} />
+  <Question id="t2-2-afirmacions" type="multi" statement="Selecciona totes les afirmacions certes" explanation="Autoritat, recursió i memòria cau són papers diferents; la bandera aa indica una resposta autoritativa." options={[["Els noms es llegeixen de dreta a esquerra, de més general a més concret.", true], ["Un recursiu obert a tot Internet és un problema de seguretat.", true], ["Els servidors arrel guarden tots els noms d'Internet.", false], ["Convé tenir dos servidors de noms per zona.", true], ["El TTL el decideix el client que pregunta.", false]]} />
+</Quiz>
+
+## Al currículum
+
+<details class="fold">
+<summary>Mostra els criteris</summary>
+
+**Contingut 2.1** Sistemes de noms plans i jeràrquics.
+
+**CA 2.3** Descriu l'estructura, nomenclatura i funcionalitat dels sistemes de noms jeràrquics.
+
+</details>

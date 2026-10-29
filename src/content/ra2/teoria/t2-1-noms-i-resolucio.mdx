@@ -1,0 +1,203 @@
+---
+ref: T2.1
+title: "Noms i resolució al client"
+description: "Què passa dins del teu equip entre que escrius un nom i surt una adreça IP."
+---
+
+import Callout from "../../../components/Callout.astro";
+import Question from "../../../components/Question.astro";
+import Quiz from "../../../components/Quiz.astro";
+
+## Què sabràs fer en acabar
+
+- Explicar per què les xarxes treballen amb noms i no amb adreces.
+- Distingir els tres mecanismes de resolució: fitxer local, mDNS i DNS.
+- Saber en quin ordre consulta el teu equip cada mecanisme.
+- Fer servir `resolvectl`, `host` i `dig`.
+- Entendre què és la memòria cau i per què de vegades enganya.
+
+## El problema que resol el DNS
+
+Al [RA1](../../../ra1/) vas repartir adreces amb DHCP. Però ningú escriu `142.250.185.3` al navegador: escrivim **noms**. Algú ha de convertir el nom en adreça abans que la màquina pugui enviar cap paquet.
+
+Els noms tenen dos avantatges que les adreces no tenen:
+
+- Es recorden. `moodle.elpuig.xeill.net` contra una IP qualsevol.
+- Sobreviuen als canvis: si el servidor canvia d'adreça, el nom continua sent el mateix.
+
+Aquesta conversió es diu **resolució de noms**, i el sistema que la fa a Internet és el **DNS** (_Domain Name System_).
+
+## Tres mecanismes, i un ordre
+
+El teu equip pot consultar un **fitxer local**, preguntar amb **mDNS** a la xarxa local o consultar un servidor **DNS**. La configuració determina què consulta.
+
+| Mecanisme | On mira | Límit |
+|---|---|---|
+| **Fitxer local** | `/etc/hosts` | Només el que hi has escrit tu |
+| **mDNS** | Pregunta a crits a la xarxa local | Només noms acabats en `.local` |
+| **DNS** | Un servidor de noms | Cal tenir-ne un configurat |
+
+Les aplicacions que fan servir la resolució del sistema segueixen la línia `hosts:` de `/etc/nsswitch.conf`. Amb `hosts: files dns`, es consulta primer `/etc/hosts`; si hi ha una entrada coincident, es retorna la seva adreça sense consultar el DNS. **La prioritat depèn de l'ordre configurat**: comprova el de la teva màquina.
+
+## Qui pregunta de veritat: systemd-resolved
+
+A Ubuntu, les aplicacions no parlen amb el servidor DNS directament. Parlen amb un servei local, **systemd-resolved**, que escolta a l'adreça `127.0.0.53` i fa de intermediari.
+
+Serveix per a dues coses:
+
+- **Memòria cau**: si algú ja ha preguntat aquell nom fa poc, respon a l'instant.
+- **Un sol punt**: si canvia el servidor DNS, les aplicacions no se n'assabenten.
+
+És un _stub_: no sap resoldre pel seu compte, només reenvia al servidor DNS que li han dit. I aquest servidor, en una xarxa normal, **l'hi ha donat el DHCP**.
+
+## El fitxer /etc/resolv.conf ja no és el que era
+
+Durant anys, el servidor DNS s'escrivia a mà a `/etc/resolv.conf`. Avui aquest fitxer el genera `systemd-resolved` i conté sempre el mateix:
+
+```text title="/etc/resolv.conf"
+# This file is managed by man:systemd-resolved(8).
+nameserver 127.0.0.53
+options edns0 trust-ad
+search .
+```
+
+Aquesta adreça no és el teu servidor DNS: és el servei local. Per veure el servidor de veritat cal preguntar-l'hi:
+
+```text title="Terminal"
+resolvectl dns
+Link 2 (enp1s0): 10.0.0.1
+```
+
+**Editar `/etc/resolv.conf` a mà no serveix de res:** es torna a generar.
+
+## El domini .local no és teu
+
+És molt habitual batejar la xarxa de casa o de l'aula com `empresa.local`. És una mala idea: el sufix **`.local` està reservat** per a mDNS, el mecanisme que fa que les impressores es trobin soles.
+
+Conseqüència pràctica: quan preguntes per un nom acabat en `.local`, el sistema el pot enviar per mDNS i **no arribar mai al teu servidor DNS**. El símptoma és típic: el client rep bé la IP i el DNS, però no resol els teus noms.
+
+Per als dominis interns fes servir `.internal`, reservat oficialment per a ús privat des del 2024, o un subdomini d'un domini teu.
+
+## Mirar com resol la teva màquina
+
+Amb qualsevol Ubuntu connectat a la xarxa del centre:
+
+1. **Mira quin servidor fa servir** i quin domini de cerca té:
+
+   ```bash title="Terminal"
+   resolvectl status
+   ```
+
+   Fixa't en `Current DNS Server` i en `DNS Domain`.
+
+2. **Resol un nom** i mira d'on surt la resposta:
+
+   ```bash title="Terminal"
+   resolvectl query www.upc.edu
+   ```
+
+   Mira si la resposta ve de `network` o de `cache`. La cau pot reduir el temps, però no garanteix que la segona consulta sigui més ràpida.
+
+3. **Consulta un servidor concret**, saltant-te el servei local:
+
+   ```bash title="Terminal"
+   host www.upc.edu 9.9.9.9
+   dig @9.9.9.9 www.upc.edu +short
+   ```
+
+4. **Demana un tipus de registre** diferent de l'adreça:
+
+   ```bash title="Terminal"
+   dig upc.edu MX +short      # servidors de correu
+   dig upc.edu NS +short      # servidors de noms
+   ```
+
+5. **Fes trampa amb `/etc/hosts`** per comprovar l'ordre de resolució:
+
+   ```bash title="Terminal"
+   echo "127.0.0.1 provaordre.test" | sudo tee -a /etc/hosts
+   getent hosts provaordre.test
+   ```
+
+   Esborra la línia quan ho hagis vist.
+
+<Callout kind="nota">
+
+**Ubuntu 26.04** `dig` i `host` ja vénen instal·lats. Si et falten: `sudo apt install bind9-dnsutils`.
+
+</Callout>
+
+## Bones pràctiques
+
+<Callout kind="bones pràctiques">
+
+- **`/etc/hosts` és per a proves**, no per a administrar una xarxa. No escala i ningú se'n recorda.
+- **No editis `/etc/resolv.conf`**: el DNS es configura al Netplan o s'obté per DHCP.
+- **Comprova amb `dig @servidor`** quan sospitis de la memòria cau: així preguntes directament.
+- **Fes servir `.internal`** per als dominis interns, mai `.local`.
+- **Dos servidors DNS** als clients, sempre que puguis: si en cau un, la xarxa continua.
+
+</Callout>
+
+## Problemes
+
+### `ping 9.9.9.9` va, però `ping www.upc.edu` no
+
+**Causa** La xarxa funciona; el que falla és la resolució de noms.
+
+**Solució** `resolvectl status`: mira si hi ha cap servidor DNS configurat i si respon amb `dig @aquellaIP`.
+
+### Has canviat una adreça i el nom encara apunta a l'antiga
+
+**Causa** Memòria cau. El teu equip guarda la resposta el temps que digui el TTL.
+
+**Solució** `sudo resolvectl flush-caches`, i comprova després amb `dig` contra el servidor.
+
+### Un nom es resol a la teva màquina i a la del costat no
+
+**Causa** Te'l resol una línia de `/etc/hosts` que només tens tu.
+
+**Solució** `getent hosts nom` i revisa el fitxer. Si hi és, treu-la i posa el registre al servidor DNS.
+
+## Resum
+
+- Resoldre un nom és convertir-lo en adreça IP abans d'enviar res.
+- L'ordre el marca `/etc/nsswitch.conf`: amb `hosts: files dns`, **`/etc/hosts` té prioritat sobre el DNS**.
+- A Ubuntu qui pregunta és **systemd-resolved**, al `127.0.0.53`, amb memòria cau.
+- `/etc/resolv.conf` és generat: no s'edita.
+- `.local` està reservat per a mDNS; per a xarxes internes, `.internal`.
+
+| Comanda | Per a què serveix |
+|---|---|
+| `resolvectl status` | Veure el DNS actiu i el domini de cerca |
+| `resolvectl query <nom>` | Resoldre i veure si ve de la cau |
+| `sudo resolvectl statistics` | Encerts i errades de la memòria cau |
+| `resolvectl flush-caches` | Buidar la memòria cau |
+| `host <nom> [servidor]` | Consulta ràpida |
+| `dig @<servidor> <nom> [tipus]` | Consulta detallada, saltant-se la cau local |
+| `getent hosts <nom>` | Resoldre seguint l'ordre de `nsswitch` |
+
+**Següent:** a _[T2.2](../../teoria/t2-2-arbre-dns/) · L'arbre del DNS_ veuràs on va a parar la pregunta quan el servidor no en sap la resposta.
+
+## Comprova el que has après
+
+<Quiz>
+  <Question id="t2-1-ordre" type="single" statement="Amb hosts: files dns a /etc/nsswitch.conf, una aplicació usa la resolució del sistema. Un nom té una IP a /etc/hosts i una altra al DNS. Quina obté primer?" explanation="L’ordre de NSS indicat al cas consulta files abans de dns; altres configuracions poden tenir un ordre diferent." options={[["La de <code>/etc/hosts</code>, perquè es consulta abans", true], ["La del DNS, perquè és l'autoritat", false], ["La més recent de les dues", false], ["Cap: el sistema dona error de conflicte", false]]} />
+  <Question id="t2-1-stub" type="single" statement="Què és l'adreça <code>127.0.0.53</code> que surt a <code>/etc/resolv.conf</code>?" explanation="El stub és un punt local de consulta; pot reenviar la petició als servidors configurats." options={[["El servidor DNS del teu proveïdor", false], ["El servei local systemd-resolved, que fa d'intermediari i memòria cau", true], ["L'adreça de difusió de la xarxa", false], ["Un servidor DNS públic de reserva", false]]} />
+  <Question id="t2-1-resolvconf" type="single" statement="Vols canviar el servidor DNS d'un Ubuntu Server. Què fas?" explanation="La configuració efectiva depèn del gestor de xarxa i de l’enllaç de resolv.conf, no només del text visible." options={[["Edito <code>/etc/resolv.conf</code> i hi poso la IP nova", false], ["Ho configuro al Netplan, o deixo que ho reparteixi el DHCP", true], ["Afegeixo el servidor a <code>/etc/hosts</code>", false], ["Reinstal·lo systemd-resolved", false]]} />
+  <Question id="t2-1-local" type="single" statement="Per què no convé batejar la xarxa interna com <code>empresa.local</code>?" explanation="El sufix .local està associat a mDNS; els dominis interns del laboratori fan servir .internal." options={[["Perquè els noms curts no es poden resoldre", false], ["Perquè <code>.local</code> està reservat per a mDNS i la consulta pot no arribar al teu DNS", true], ["Perquè BIND no admet dominis inventats", false], ["Perquè cal pagar per registrar-lo", false]]} />
+  <Question id="t2-1-eines" type="multi" statement="Selecciona totes les afirmacions certes" explanation="dig amb @ consulta aquell DNS directament; la resolució d’una aplicació pot seguir NSS i dades locals." options={[["<code>dig @9.9.9.9 nom</code> pregunta directament a aquell servidor.", true], ["La memòria cau pot fer que vegis una adreça antiga.", true], ["systemd-resolved pot obtenir qualsevol nom públic nou sense cap font DNS ni dades locals.", false], ["El servidor DNS del client sol arribar per DHCP.", true], ["<code>/etc/hosts</code> és la manera recomanada de gestionar els noms d'una empresa.", false]]} />
+</Quiz>
+
+## Al currículum
+
+<details class="fold">
+<summary>Mostra els criteris</summary>
+
+**Contingut 2.1** Sistemes de noms plans i jeràrquics.
+
+**CA 2.1** Identifica i descriu escenaris en què sorgeix la necessitat d'un servei de resolució de noms.
+
+**CA 2.2** Classifica els principals mecanismes de resolució de noms.
+
+</details>

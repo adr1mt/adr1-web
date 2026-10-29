@@ -1,0 +1,104 @@
+---
+ref: A2.1
+title: "El client davant dels noms"
+description: "Investigar com resol la teva màquina abans de muntar cap servidor."
+---
+
+## Amb què treballaràs
+
+### Abans de començar
+
+Teoria [T2.1](../../teoria/t2-1-noms-i-resolucio/) (noms i resolució al client) i [T2.2](../../teoria/t2-2-arbre-dns/) (l'arbre del DNS).
+
+Una màquina virtual **Ubuntu nova** a isardVDI amb la targeta `puigcastellar1`, que rep la configuració del DHCP del centre. Aquí no muntes cap servei: només observes i documentes.
+
+Totes les respostes s'han d'acompanyar de la **sortida de la comanda** que les justifica. Una resposta sense la seva captura no compta.
+
+## 1 · Com està configurada la teva màquina
+
+1. Quin servidor DNS fa servir i **d'on l'ha tret**? Quin és el domini de cerca?
+2. Què hi ha a `/etc/resolv.conf`? Per què hi surt aquella adreça i no la del servidor?
+3. Quin procés escolta al port 53 de la teva màquina? Comprova-ho.
+4. Quin percentatge d'encerts té la memòria cau ara mateix? Fes unes quantes consultes i torna-ho a mirar.
+5. Quina línia de `/etc/nsswitch.conf` decideix l'ordre de resolució, i què vol dir?
+
+## 2 · Les eines de consulta
+
+1. Resol `es.wikipedia.org` amb `host`, primer amb el DNS del centre i després amb `1.1.1.1`. Hi ha diferències?
+2. Amb `dig`: com s'especifica el servidor? I que la consulta vagi per TCP? I que et doni qualsevol tipus de registre?
+3. Esbrina quins servidors DNS són responsables de `xeill.net`, `wikipedia.org` i `fsf.org`.
+4. Pregunta a un d'aquests servidors per un nom que **no** sigui de la seva zona. Respon? Què vol dir això?
+5. Resol el domini `xn--j1ay.xn--p1ai` i mira com el mostra el navegador. Què és el _punycode_?
+
+## 3 · Els servidors públics
+
+1. Consulta el mateix nom a `1.1.1.1`, `9.9.9.9` i `8.8.8.8` i compara el `Query time`. Repeteix-ho i explica per què canvia.
+2. On és físicament cadascun? Pots fer servir [geoiptool](https://geoiptool.com/es).
+3. Fes una llista de tres resolutors públics: qui els manté i amb quin interès.
+4. On es pot obtenir la llista oficial dels **servidors arrel**?
+5. Segueix la resolució de `moodle.elpuig.xeill.net` des de l'arrel i explica els salts que fa.
+
+### On trobaràs ajuda
+
+Les comandes no te les donem fetes; sí que et diem on trobar-les:
+
+| Què has de fer | On ho tens |
+|---|---|
+| Estat, cau i consultes del client | Teoria [T2.1](../../teoria/t2-1-noms-i-resolucio/), taula del resum |
+| Opcions de `dig` | `man dig` |
+| Qui escolta a un port | `ss --help`, del [RA1](../../../ra1/) |
+| Seguir la resolució des de l'arrel | Teoria [T2.2](../../teoria/t2-2-arbre-dns/) |
+| Servidors arrel | [root-servers.org](https://root-servers.org) |
+
+## Compte amb la memòria cau quan comparis temps
+
+Repeteix cada consulta almenys tres vegades i conserva tots els temps. Amb `dig @adreça` preguntes directament al servidor triat: buidar la cau local no buida la del resolvedor remot. Latència, càrrega i anycast també afecten les mesures.
+
+Una IP anycast pot correspondre a molts nodes. La geolocalització de la IP no demostra on és el node que ha respost. Consulta la informació del proveïdor i indica aquest límit.
+
+## Com sabràs que ho has fet bé
+
+Abans d'entregar, repassa que el document compleixi això:
+
+- Cada resposta va acompanyada de la comanda i de la seva sortida.
+- Has distingit el servei local `127.0.0.53` del servidor DNS de veritat.
+- Has trobat almenys un servidor que **no** et resol noms de fora de la seva zona, i saps per què.
+- Els temps de resposta que compares són comparables entre ells.
+- Expliques els salts de la resolució, no només enganxes la sortida.
+
+## Problemes
+
+### `dig` o `host` no existeixen
+
+**Causa** Falta el paquet d'eines de consulta.
+
+**Solució** Instal·la `dnsutils`.
+
+### Totes les consultes triguen el mateix, vinguin d'on vinguin
+
+**Causa** Estàs preguntant sempre al servei local, que respon de la cau.
+
+**Solució** Fes servir `dig @adreça` per anar directe al servidor.
+
+### Un servidor públic no et respon
+
+**Causa** La xarxa del centre pot filtrar el port 53 cap a fora.
+
+**Solució** Documenta-ho: també és un resultat. Prova amb un altre servidor i digues què has observat.
+
+## Què has d’entregar
+
+Un **document tècnic** on expliquis tot el que has anat fent, amb les captures del resultat.
+
+Respon-hi també, amb les teves paraules: **quina diferència hi ha entre el servidor que surt a `/etc/resolv.conf` i el que et resol els noms de veritat?**
+
+## Al currículum
+
+<details class="fold">
+<summary>Mostra els criteris</summary>
+
+**CA 2.1** Identifica i descriu escenaris en què sorgeix la necessitat d'un servei de resolució de noms.
+
+**CA 2.2** Classifica els principals mecanismes de resolució de noms.
+
+</details>

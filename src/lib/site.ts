@@ -8,9 +8,22 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 /** Prefixes an absolute site path ("/ra1/") with the deploy base. */
 export const href = (path: string) => BASE + path;
 
-// ---------- RA1 ----------
+// ---------- Learning outcomes (RA) ----------
 
-export type Ra1Page = CollectionEntry<'ra1'>;
+export type RaPage = CollectionEntry<'ra'>;
+
+/** The RAs already migrated to this web, in order. `id` is the content folder and the URL. */
+export const RAS = [
+  { id: 'ra1', n: 1, short: 'Servei DHCP', title: 'Instal·lació de serveis de configuració dinàmica (DHCP)' },
+  { id: 'ra2', n: 2, short: 'Servei DNS', title: 'Instal·lació de serveis de resolució de noms (DNS)' },
+] as const;
+
+export type Ra = (typeof RAS)[number];
+export type RaId = Ra['id'];
+
+export const getRa = (id: RaId) => RAS.find((ra) => ra.id === id)!;
+export const raLabel = (ra: Ra) => `RA${ra.n} · ${ra.short}`;
+export const raUrl = (ra: Ra) => href(`/${ra.id}/`);
 
 export const SECTIONS = [
   { id: 'teoria', label: 'Teoria', intro: 'Expliquen com funciona el servei, sense lligar-lo a cap producte.' },
@@ -18,15 +31,17 @@ export const SECTIONS = [
   { id: 'activitats', label: 'Activitats', intro: 'Encàrrecs amb requisits i criteris de comprovació.' },
 ] as const;
 
-export const sectionOf = (page: Ra1Page) => page.id.split('/')[0];
-export const pageUrl = (page: Ra1Page) => href(`/ra1/${page.id}/`);
+// A page id is "ra2/teoria/t2-1-noms-i-resolucio": RA, section and file name.
+export const raOf = (page: RaPage) => page.id.split('/')[0];
+export const sectionOf = (page: RaPage) => page.id.split('/')[1];
+export const pageUrl = (page: RaPage) => href(`/${page.id}/`);
 
-const sectionRank = (page: Ra1Page) => SECTIONS.findIndex((s) => s.id === sectionOf(page));
-const refNumber = (page: Ra1Page) => Number(page.data.ref.split('.')[1]);
+const sectionRank = (page: RaPage) => SECTIONS.findIndex((s) => s.id === sectionOf(page));
+const refNumber = (page: RaPage) => Number(page.data.ref.split('.')[1]);
 
-/** All RA1 pages in reading order: theory, guides, activities; each by its number. */
-export async function getRa1Pages() {
-  const pages = await getCollection('ra1');
+/** The pages of one RA in reading order: theory, guides, activities; each by its number. */
+export async function getRaPages(ra: RaId) {
+  const pages = await getCollection('ra', (page) => raOf(page) === ra);
   return pages.sort((a, b) => sectionRank(a) - sectionRank(b) || refNumber(a) - refNumber(b));
 }
 

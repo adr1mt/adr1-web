@@ -1,0 +1,109 @@
+---
+ref: A2.4
+title: "Zona secundària per parelles"
+description: "La teva zona, servida també des del servidor d'un company."
+---
+
+import Callout from "../../../components/Callout.astro";
+
+## Amb què treballaràs
+
+### Abans de començar
+
+Teoria [T2.4](../../teoria/t2-4-primari-secundari/) (primari i secundari), guia [G2.1](../../guies/g2-1-bind9/), i tenir feta l'activitat [A2.2](../../activitats/a2-2-servidor-bind/): cal saber preparar una zona pròpia abans de poder-la transferir.
+
+Cada membre crea un servidor nou a isardVDI amb puigcastellar1 i personal1. A personal1, utilitzeu 192.168.1.8/24 i 192.168.1.9/24. Amb [G2.1](../../guies/g2-1-bind9/) cadascú prepara una zona primary pròpia, amb SOA, NS i A, i comprova la resposta autoritativa abans d’afegir la zona secondary.
+
+Es treballa **per parelles**. Els dos servidors han de veure's per xarxa, així que aquesta vegada tots dos van a la **mateixa xarxa**: poseu-vos d'acord amb el professor sobre quina targeta feu servir i quina adreça pren cadascú.
+
+| Màquina | És primari de | És secundari de |
+|---|---|---|
+| El teu servidor | `elteunom.internal` | La zona del company |
+| El del company | `elseunom.internal` | La teva zona |
+
+Cada servidor manté una zona i en copia una altra. Comproveu-ho tots dos: l'activitat no està feta fins que funciona en els dos sentits.
+
+## Què has de fer
+
+1. Posar-vos d'acord en les adreces dels dos servidors i comprovar que us feu `ping`.
+2. Afegir a la teva zona un registre **NS per al servidor del company**, i el seu registre A si cal.
+3. Autoritzar **només** el servidor del company a endur-se la teva zona, i avisar-lo dels canvis.
+4. Declarar al teu servidor la zona del company com a **secundària**, sense escriure'n cap fitxer.
+5. Demostrar que la rèplica funciona: un canvi al primari s'ha de veure al secundari.
+
+### On trobaràs ajuda
+
+Les comandes no te les donem fetes; sí que et diem on trobar-les:
+
+| Què has de fer | On ho tens |
+|---|---|
+| Declarar primari i secundari | Guia [G2.1](../../guies/g2-1-bind9/), «Les dues declaracions» |
+| Autoritzar i notificar | `allow-transfer` i `also-notify`, a la [G2.1](../../guies/g2-1-bind9/) |
+| On desa el fitxer el secundari | Teoria [T2.4](../../teoria/t2-4-primari-secundari/), taula dels dos papers |
+| Provar la transferència a mà | `dig` amb el tipus `AXFR` |
+| Forçar una descàrrega | `rndc`, a la fitxa ràpida de la [G2.1](../../guies/g2-1-bind9/) |
+
+## Autoritza el company, no tothom
+
+<Callout kind="recordatori">
+
+És temptador posar `allow-transfer { any; };` perquè funcioni de seguida. No ho facis: qui es descarrega la teva zona obté el mapa sencer de la teva xarxa. Posa-hi la IP del company i prou, i explica-ho al document.
+
+</Callout>
+
+## Com demostrar que la rèplica és de veritat
+
+Que el secundari respongui no vol dir gran cosa: potser el que veus és la resposta del primari. La prova bona té tres passos.
+
+1. Pregunta el **serial** de la zona als dos servidors: han de coincidir.
+2. Al primari, canvia un registre i **apuja el serial**.
+3. Torna a preguntar als dos: el secundari ha de servir el valor nou, ell sol.
+
+Si no canvia, mira els registres del servei del secundari abans de tocar res: t'hi dirà si la transferència s'ha intentat i per què ha fallat.
+
+## Com sabràs que ho has fet bé
+
+Abans d'entregar, has de poder respondre **sí** a totes aquestes preguntes, amb la sortida d'una comanda al davant:
+
+- La teva zona té un registre NS per a cada servidor, i `named-checkzone` no es queixa.
+- El fitxer de la zona secundària **ha aparegut sol** a la teva màquina.
+- Els dos servidors responen la mateixa zona amb el mateix serial.
+- Un canvi al primari arriba al secundari sense que ningú hi copiï res.
+- Un tercer equip que no sigui el company **no** es pot descarregar la teva zona.
+
+## Problemes
+
+### `Transfer failed` als registres del secundari
+
+**Causa** El primari no autoritza aquella IP, o no us arribeu pel port 53 TCP.
+
+**Solució** Prova la transferència a mà amb `dig`. Si tampoc va, el problema és de l'autorització o de la xarxa, no de la declaració de la zona.
+
+### El secundari no actualitza els canvis
+
+**Causa** El serial no ha pujat al primari.
+
+**Solució** Compara els serials dels dos servidors. Si són iguals, el problema és al primari.
+
+### El servei del secundari es queixa en escriure el fitxer
+
+**Causa** Has posat el fitxer en un camí on el servei no pot escriure.
+
+**Solució** Les zones secundàries van a la carpeta que fa servir BIND per al que escriu ell.
+
+## Què has d’entregar
+
+Un **document tècnic** on expliquis tot el que has anat fent, amb els teus fitxers de configuració i les captures del resultat. Indica-hi amb qui has treballat i quina adreça tenia cada servidor.
+
+Respon-hi també, amb les teves paraules: **per què el secundari respon amb la mateixa autoritat que el primari, si les dades no són seves?**
+
+## Al currículum
+
+<details class="fold">
+<summary>Mostra els criteris</summary>
+
+**CA 2.7** Treballa en grup per realitzar transferències de zona entre dos o més servidors.
+
+**CA 2.8** Comprova el funcionament correcte del servidor.
+
+</details>

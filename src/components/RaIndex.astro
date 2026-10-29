@@ -1,0 +1,73 @@
+---
+// Index of one RA: title, an intro of its own (default slot) and the pages of each
+// section, taken from the collection. The "after" slot goes below the list.
+import type { MarkdownHeading } from 'astro';
+import DocsLayout from '../layouts/DocsLayout.astro';
+import { getRaPages, pageUrl, sectionOf, SECTIONS, href, raLabel, type Ra } from '../lib/site';
+
+interface Props {
+  ra: Ra;
+  description: string;
+  /** Headings of the "after" slot, so the TOC lists them too. */
+  afterHeadings?: MarkdownHeading[];
+}
+const { ra, description, afterHeadings = [] } = Astro.props;
+
+const pages = await getRaPages(ra.id);
+const first = pages[0];
+---
+
+<DocsLayout
+  title={raLabel(ra)}
+  description={description}
+  ra={ra}
+  pages={pages}
+  breadcrumb={[{ label: 'Serveis de xarxa', url: href('/serveis-en-xarxa/') }, { label: raLabel(ra) }]}
+  headings={[...SECTIONS.map((s) => ({ depth: 2, slug: s.id, text: s.label })), ...afterHeadings]}
+  prev={{ url: href('/serveis-en-xarxa/'), title: 'Serveis de xarxa' }}
+  next={{ url: pageUrl(first), ref: first.data.ref, title: first.data.title }}
+>
+  <h1>RA{ra.n} · {ra.title}</h1>
+  <p>{description} Tria teoria, guia o activitat segons el que necessitis.</p>
+
+  <slot />
+
+  {SECTIONS.map((section) => (
+    <section aria-labelledby={section.id}>
+      <h2 id={section.id}>{section.label}</h2>
+      <p class="section-intro">{section.intro}</p>
+      <ul class="index">
+        {pages.filter((p) => sectionOf(p) === section.id).map((p) => (
+          <li>
+            <a href={pageUrl(p)}>
+              <span class="ref">{p.data.ref}</span>
+              <span class="ttl">{p.data.title}</span>
+              <span class="sub">{p.data.description}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  ))}
+
+  <slot name="after" />
+</DocsLayout>
+
+<style>
+  .section-intro { color: var(--muted); }
+  .index { list-style: none; padding: 0; border-top: 1px solid var(--rule); }
+  .index li { margin: 0; border-bottom: 1px solid var(--rule); }
+  .index a {
+    display: grid;
+    grid-template-columns: 3.25rem 1fr;
+    column-gap: 0.75rem;
+    padding: 0.875rem 0.5rem;
+    margin: 0 -0.5rem;
+    text-decoration: none;
+    border-radius: var(--radius);
+  }
+  .index a:hover { background: var(--bg-soft); text-decoration: none; }
+  .ref { font: 0.875rem/1.6 var(--font-mono); color: var(--muted); grid-row: span 2; padding-top: 0.0625rem; }
+  .ttl { font-weight: 600; color: var(--accent); }
+  .sub { color: var(--muted); font-size: 0.9375rem; grid-column: 2; }
+</style>

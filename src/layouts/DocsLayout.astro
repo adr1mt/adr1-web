@@ -1,10 +1,10 @@
 ---
 import type { MarkdownHeading } from 'astro';
 import BaseLayout from './BaseLayout.astro';
-import Ra1Nav from '../components/Ra1Nav.astro';
+import RaNav from '../components/RaNav.astro';
 import Toc from '../components/Toc.astro';
 import PrevNext from '../components/PrevNext.astro';
-import type { Ra1Page } from '../lib/site';
+import type { Ra, RaPage } from '../lib/site';
 
 interface Crumb { label: string; url?: string }
 interface Link { url: string; ref?: string; title: string }
@@ -12,7 +12,8 @@ interface Link { url: string; ref?: string; title: string }
 interface Props {
   title: string;
   description?: string;
-  pages: Ra1Page[];
+  ra: Ra;
+  pages: RaPage[];
   currentId?: string;
   breadcrumb: Crumb[];
   headings?: MarkdownHeading[];
@@ -20,17 +21,17 @@ interface Props {
   next?: Link;
 }
 
-const { title, description, pages, currentId, breadcrumb, headings = [], prev, next } = Astro.props;
+const { title, description, ra, pages, currentId, breadcrumb, headings = [], prev, next } = Astro.props;
 ---
 
 <BaseLayout title={title} description={description} current="serveis" lang="ca">
   <Fragment slot="menu">
-    <div class="menu-nav"><Ra1Nav pages={pages} currentId={currentId} /></div>
+    <div class="menu-nav"><RaNav ra={ra} pages={pages} currentId={currentId} /></div>
   </Fragment>
 
   <div class="docs">
     <aside class="docs-sidebar" data-pagefind-ignore="all">
-      <Ra1Nav pages={pages} currentId={currentId} />
+      <RaNav ra={ra} pages={pages} currentId={currentId} />
     </aside>
 
     <main id="contingut" class="docs-main" tabindex="-1">

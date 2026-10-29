@@ -1,0 +1,121 @@
+---
+ref: A2.2
+title: "Servidor DNS amb BIND 9"
+description: "El teu resolutor i la teva zona, servint noms a la xarxa personal1."
+---
+
+import Callout from "../../../components/Callout.astro";
+
+## Amb què treballaràs
+
+### Abans de començar
+
+Teoria [T2.3](../../teoria/t2-3-zones-i-registres/) (zones i registres) i guia [G2.1](../../guies/g2-1-bind9/) (BIND 9). Del [RA1](../../../ra1/) necessitaràs el Netplan de la [G1.1](../../../ra1/guies/g1-1-netplan/).
+
+| Màquina | Targetes | Adreça |
+|---|---|---|
+| Ubuntu **Server** | puigcastellar1 + personal1 | `192.168.1.8/24` a personal1 |
+| Ubuntu **Desktop** | només personal1 | `192.168.1.100/24`, fixa |
+
+Pots partir d’una **còpia de la base preparada a [A1.1](../../../ra1/activitats/a1-1-posada-a-punt/)** o d’una màquina nova a isardVDI. Comprova que no hi hagi serveis ni regles de xarxa de pràctiques anteriors i adapta les targetes i adreces a aquest escenari. Comprova també que no hi hagi cap servidor DNS instal·lat. En aquesta activitat el client encara es configura a mà: repartir-li el DNS automàticament és feina de l'activitat [A2.3](../../activitats/a2-3-kea-i-bind/).
+
+## Què has de fer
+
+1. Preparar el servidor: _hostname_ amb el teu nom i `192.168.1.8/24` a `personal1`.
+2. Instal·lar BIND i configurar-lo com a **resolutor amb memòria cau**, que només atengui la teva xarxa.
+3. Crear la teva **zona directa** `elteunom.internal` i la **zona inversa** corresponent.
+4. Omplir-les amb els registres de la taula de sota, amb els seus PTR.
+5. Configurar el client perquè faci servir el teu servidor i comprovar-ho tot des d'allà.
+
+| Nom | Tipus | Valor |
+|---|---|---|
+| `ns1` | A | La IP del servidor |
+| `www` | A | La IP del servidor |
+| `correu` | A | `192.168.1.9` |
+| `intranet` | CNAME | Àlies de `www` |
+| La zona | MX | `correu`, prioritat 10 |
+
+### On trobaràs ajuda
+
+Les guies documenten el procediment. Aquí tens on consultar cada part:
+
+| Què has de fer | On ho tens |
+|---|---|
+| Posada a punt i Netplan | Guia [G1.1](../../../ra1/guies/g1-1-netplan/) i activitat [A1.1](../../../ra1/activitats/a1-1-posada-a-punt/) |
+| Instal·lació, ACL, forwarders i `listen-on` | Guia [G2.1](../../guies/g2-1-bind9/) |
+| Declaració de zones i fitxers de zona | Guia [G2.1](../../guies/g2-1-bind9/) |
+| Validació i recàrrega | Guia [G2.1](../../guies/g2-1-bind9/), fitxa ràpida |
+| DNS al client per Netplan | `nameservers:`, amb `search` i `addresses` |
+
+## Només per personal1, i el domini acabat en .internal
+
+<Callout kind="recordatori">
+
+El servidor ha d'escoltar **només** per `personal1`: si escoltes per `puigcastellar1` obres un resolutor a la xarxa del centre.
+
+I bateja el domini com `elteunom.internal`, mai `.local`: el sufix `.local` està reservat per a mDNS i el client pot no arribar mai a preguntar-te (ho tens explicat a la [T2.1](../../teoria/t2-1-noms-i-resolucio/)).
+
+</Callout>
+
+## Dues decisions que has de prendre tu
+
+**Els fitxers de zona, on.** Crea'ls a `/etc/bind/zones/`: és la teva configuració i ha d'estar amb la resta. La carpeta `/var/cache/bind/` es reserva per al que escriu BIND tot sol, que a l'activitat [A2.4](../../activitats/a2-4-zona-secundaria/) seran les zones secundàries.
+
+**El client.** Perquè pugui escriure `ping www` a seques i funcioni, al Netplan del client no n'hi ha prou amb el servidor: també li has de dir quin és el domini de cerca.
+
+## Com sabràs que ho has fet bé
+
+Abans d'entregar, has de poder respondre **sí** a totes aquestes preguntes, amb la sortida d'una comanda al davant:
+
+- `named-checkconf` i `named-checkzone` no es queixen de res.
+- El servei escolta al port 53 per la IP de `personal1`.
+- Des del client, `www.elteunom.internal` i l'àlies `intranet` es resolen, amb la marca `aa`.
+- La **resolució inversa** de les teves adreces retorna el nom correcte.
+- El client resol també noms d'Internet. Repeteixes la consulta al mateix nom i registres els temps: la cau pot reduir-los, però no ho garanteix.
+
+## Problemes
+
+### El servei no arrenca
+
+**Causa** Falta un punt i coma o una clau, o el fitxer de zona té un error.
+
+**Solució** `named-checkconf` primer, `named-checkzone` després, i `journalctl -u named` si encara no queda clar.
+
+### El client rep `REFUSED`
+
+**Causa** No és dins de l'ACL, o el servidor no escolta per aquella adreça.
+
+**Solució** Revisa `allow-query` i `listen-on`, i comprova amb `ss` per on escolta de veritat.
+
+### El nom es resol amb el domini repetit
+
+**Causa** Un nom absolut escrit sense punt final al fitxer de zona.
+
+**Solució** Repassa tots els noms de la dreta: o són relatius i curts, o acaben en punt.
+
+### El client resol els teus noms però no surt a Internet
+
+**Causa** És normal en aquesta activitat: encara no has activat l'encaminament ni el NAT.
+
+**Solució** Comprova que sí que resol noms externs. La sortida a Internet és de l'activitat [A2.3](../../activitats/a2-3-kea-i-bind/).
+
+## Què has d’entregar
+
+Un **document tècnic** on expliquis tot el que has anat fent, amb els teus fitxers de configuració i les captures del resultat.
+
+Respon-hi també, amb les teves paraules: **el teu servidor és recursiu, autoritatiu o totes dues coses? Justifica-ho amb la teva configuració.**
+
+## Al currículum
+
+<details class="fold">
+<summary>Mostra els criteris</summary>
+
+**CA 2.4** Instal·la un servei jeràrquic de resolució de noms.
+
+**CA 2.5** Prepara el servei per emmagatzemar les respostes de servidors públics i servir-les a la xarxa local.
+
+**CA 2.6** Afegeix registres de noms d'una zona nova, amb opcions de servidors de correu i àlies.
+
+**CA 2.8** Comprova el funcionament correcte del servidor.
+
+</details>

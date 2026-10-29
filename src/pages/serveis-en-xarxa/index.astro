@@ -1,11 +1,9 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { href } from '../../lib/site';
+import { RAS, raUrl } from '../../lib/site';
 
 // Only the learning outcomes already migrated to this web are listed.
-const ras = [
-  { n: 1, title: 'Instal·lació de serveis de configuració dinàmica (DHCP)', url: href('/ra1/') },
-];
+const ras = RAS.map((ra) => ({ n: ra.n, title: ra.title, url: raUrl(ra) }));
 ---
 
 <BaseLayout title="Serveis de xarxa" description="Material del mòdul 0227 Serveis de xarxa (CFGM SMX)." current="serveis" lang="ca">

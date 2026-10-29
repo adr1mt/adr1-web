@@ -1,0 +1,32 @@
+---
+import Callout from '../../components/Callout.astro';
+import RaIndex from '../../components/RaIndex.astro';
+import { getRa, getRaPages, pageUrl } from '../../lib/site';
+
+const ra = getRa('ra2');
+const pages = await getRaPages(ra.id);
+const ref = (r: string) => pageUrl(pages.find((p) => p.data.ref === r)!);
+---
+
+<RaIndex
+  ra={ra}
+  description="Resolució de noms, zones i redundància DNS."
+  afterHeadings={[{ depth: 2, slug: 'el-domini-de-la-teva-xarxa-acaba-en-internal', text: 'El domini de la teva xarxa acaba en .internal' }]}
+>
+  <p>
+    Cada activitat es fa sobre una <strong>màquina nova</strong> a isardVDI, amb les targetes
+    <code>puigcastellar1</code> i <code>personal1</code>. La xarxa interna d'aquest RA és la
+    <code>192.168.1.0/24</code>.
+  </p>
+
+  <Fragment slot="after">
+    <h2 id="el-domini-de-la-teva-xarxa-acaba-en-internal">El domini de la teva xarxa acaba en .internal</h2>
+    <Callout kind="recordatori">
+      <p>
+        A tot el RA2 els dominis interns es diuen <code>elteunom.internal</code>. Evita
+        <code>.local</code>: està reservat per a mDNS i fa que els clients no arribin a preguntar al
+        teu servidor. Ho tens explicat a la <a href={ref('T2.1')}>T2.1</a>.
+      </p>
+    </Callout>
+  </Fragment>
+</RaIndex>

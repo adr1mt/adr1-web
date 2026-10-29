@@ -1,0 +1,116 @@
+---
+ref: A2.3
+title: "DHCP i DNS treballant junts"
+description: "El client s'endolla, rep adreça i DNS, resol els teus noms i surt a Internet."
+---
+
+import Callout from "../../../components/Callout.astro";
+
+## Amb què treballaràs
+
+### Abans de començar
+
+Del [RA1](../../../ra1/): [T1.2](../../../ra1/teoria/t1-2-encaminament-nat/) (encaminament i NAT) i les guies [G1.2](../../../ra1/guies/g1-2-kea/) i [G1.3](../../../ra1/guies/g1-3-nftables/). D'aquest RA: [T2.3](../../teoria/t2-3-zones-i-registres/), la guia [G2.1](../../guies/g2-1-bind9/) i tenir feta l'activitat [A2.2](../../activitats/a2-2-servidor-bind/).
+
+| Màquina | Targetes | Paper |
+|---|---|---|
+| Ubuntu **Server** | puigcastellar1 + personal1 | DNS, DHCP i porta d'enllaç |
+| Ubuntu **Desktop** | només personal1 | Client, sense configurar res |
+
+Comença amb una **màquina nova** a isardVDI i torna-hi a muntar el BIND de l'activitat [A2.2](../../activitats/a2-2-servidor-bind/): amb el teu document al davant són cinc minuts, i és la millor manera de comprovar que allò que vas escriure serveix.
+
+## Què has de fer
+
+1. Deixar el servidor com al final de l'activitat [A2.2](../../activitats/a2-2-servidor-bind/): `192.168.1.8/24` a `personal1` i la teva zona funcionant.
+2. Instal·lar **Kea** i repartir adreces per a la xarxa `192.168.1.0/24`, amb el rang que decideixis.
+3. Repartir com a DNS **el teu propi servidor** i com a domini `elteunom.internal`.
+4. Ampliar la zona amb els registres de la taula, i els seus PTR a la inversa.
+5. Activar l'**encaminament i el NAT** perquè el client tingui Internet.
+
+| Nom | Tipus | Valor |
+|---|---|---|
+| `maquina1` | A | `192.168.1.20` |
+| `servidor2` | A | `192.168.1.21` |
+| `intranet` | CNAME | Àlies de `maquina1` |
+| La zona | TXT | Un missatge breu teu |
+
+### On trobaràs ajuda
+
+Tot això ja ho has fet abans, en activitats diferents. Aquí ho ajuntes:
+
+| Què has de fer | On ho tens |
+|---|---|
+| BIND, zona directa i inversa | Guia [G2.1](../../guies/g2-1-bind9/) i activitat [A2.2](../../activitats/a2-2-servidor-bind/) |
+| Instal·lar i configurar Kea | Guia [G1.2](../../../ra1/guies/g1-2-kea/) |
+| Opcions que reparteix el DHCP | `domain-name-servers` i `domain-name`, a la [G1.2](../../../ra1/guies/g1-2-kea/) |
+| IP forwarding i NAT amb nftables | Teoria [T1.2](../../../ra1/teoria/t1-2-encaminament-nat/) i guia [G1.3](../../../ra1/guies/g1-3-nftables/) |
+| Comprovar què ha rebut el client | Teoria [T2.1](../../teoria/t2-1-noms-i-resolucio/) d'aquest RA |
+
+## Dos serveis, la mateixa regla
+
+<Callout kind="recordatori">
+
+Ni Kea ni BIND han d'escoltar per `puigcastellar1`. Un DHCP furtiu deixa companys sense adreça i un resolutor obert és un problema de seguretat. Tots dos serveis, només per `personal1`.
+
+</Callout>
+
+## Els dos serveis s'han de posar d'acord
+
+**El rang i els registres no s'han de trepitjar.** Si Kea pot donar la `192.168.1.20` a qualsevol portàtil, el nom `maquina1` apuntarà a una màquina que no toca. Decideix on comença el rang i deixa les adreces amb nom fora.
+
+**Aquí no hi ha DNS dinàmic.** Kea no escriu res a la teva zona: els noms els poses tu a mà. Que un client rebi adreça no vol dir que tingui nom, i és el motiu pel qual les màquines importants es reserven per MAC.
+
+## Com sabràs que ho has fet bé
+
+Abans d'entregar, has de poder respondre **sí** a totes aquestes preguntes, amb la sortida d'una comanda al davant:
+
+- El client, **sense tocar-hi res**, rep adreça del teu rang, la teva porta d'enllaç i el teu DNS.
+- Els registres del servidor mostren la concessió, i `resolvectl status` al client mostra el teu servidor i el teu domini.
+- Des del client es resolen `maquina1`, l'àlies `intranet`, el registre TXT i la inversa.
+- Des del client es resolen també noms d'Internet.
+- El client fa `ping` a una IP d'Internet i a un nom de domini.
+
+## Problemes
+
+### El client rep IP i DNS correctes, però no resol els teus noms
+
+**Causa** Gairebé sempre, el domini. Si l'has batejat `.local`, la consulta se'n va per mDNS i no arriba al teu servidor.
+
+**Solució** Fes servir `.internal`. Comprova primer amb `dig @elteuservidor nom`: si el servidor respon i el client no, el problema és del client, no de la zona.
+
+### El client no fa cas del DNS que li has repartit
+
+**Causa** El fitxer `/etc/resolv.conf` del client no apunta al servei de systemd-resolved.
+
+**Solució** Comprova `resolvectl status` i que `/etc/resolv.conf` sigui l'enllaç que gestiona el sistema. Si algú l'ha substituït per un fitxer normal, aquell fitxer mana.
+
+### Resol noms però no navega
+
+**Causa** Falta l'encaminament o el NAT.
+
+**Solució** Prova per capes des del client: porta d'enllaç, `ping` al servidor, `ping` a una IP d'Internet i `ping` a un nom.
+
+### Un nom apunta a la màquina equivocada
+
+**Causa** L'adreça del registre cau dins del rang que reparteix Kea.
+
+**Solució** Treu-la del rang o reserva-la per MAC, i apuja el serial de la zona.
+
+## Què has d’entregar
+
+Un **document tècnic** on expliquis tot el que has anat fent, amb els teus fitxers de configuració i les captures del resultat.
+
+Respon-hi també, amb les teves paraules: **per què el client acaba fent servir el teu DNS sense que ningú l'hi hagi configurat?**
+
+## Al currículum
+
+<details class="fold">
+<summary>Mostra els criteris</summary>
+
+**CA 1.7** Integra en el servei opcions addicionals de configuració.
+
+**CA 2.4** Instal·la un servei jeràrquic de resolució de noms.
+
+**CA 2.8** Comprova el funcionament correcte del servidor.
+
+</details>

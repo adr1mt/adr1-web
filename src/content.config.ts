@@ -2,12 +2,13 @@ import { defineCollection } from 'astro:content';
 import { glob } from 'astro/loaders';
 import { z } from 'astro/zod';
 
-// RA1 pages. The folder (teoria / guies / activitats) is the section and
-// `ref` (T1.1, G1.2, A1.3…) gives the order, so no separate nav list exists.
-const ra1 = defineCollection({
-  loader: glob({ pattern: '**/*.mdx', base: './src/content/ra1' }),
+// Pages of every learning outcome (src/content/raN/). The first folder is the RA,
+// the second (teoria / guies / activitats) the section, and `ref` (T1.1, G2.1,
+// A2.3…) gives the order, so no separate nav list exists.
+const ra = defineCollection({
+  loader: glob({ pattern: 'ra[1-8]/**/*.mdx', base: './src/content' }),
   schema: z.object({
-    ref: z.string().regex(/^[TGA]1\.\d+$/),
+    ref: z.string().regex(/^[TGA][1-8]\.\d+$/),
     title: z.string(),
     description: z.string(),
   }),
@@ -25,4 +26,4 @@ const blog = defineCollection({
   }),
 });
 
-export const collections = { ra1, blog };
+export const collections = { ra, blog };

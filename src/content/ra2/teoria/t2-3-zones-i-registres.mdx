@@ -1,0 +1,127 @@
+---
+ref: T2.3
+title: "Zones i registres"
+description: "Què és una zona, què hi ha dins i quins registres necessites."
+---
+
+import Callout from "../../../components/Callout.astro";
+import Question from "../../../components/Question.astro";
+import Quiz from "../../../components/Quiz.astro";
+
+## Què sabràs fer en acabar
+
+- Distingir una zona **directa** d'una d'**inversa**.
+- Escriure un fitxer de zona amb el registre **SOA** ben posat.
+- Distingir els registres A, PTR, CNAME, MX, TXT i NS.
+- Recordar per què el **punt final** canvia el significat d'un nom.
+- Dir per què el **serial** s'ha d'apujar a cada canvi.
+
+## Dues zones per a la mateixa xarxa
+
+Fins ara el teu servidor repetia el que deien els altres. Ara tindrà dades pròpies: serà **autoritatiu** d'una zona teva.
+
+| Zona | Respon a | Es diu |
+|---|---|---|
+| **Directa** | «Quina IP té aquest nom?» | `adria.internal` |
+| **Inversa** | «Quin nom té aquesta IP?» | `1.168.192.in-addr.arpa` |
+
+El nom de la zona inversa és la **xarxa escrita al revés** seguida de `in-addr.arpa`. Per a `192.168.1.0/24`, els tres primers octets girats: `1.168.192`. Fa estrany, però té sentit: així les adreces també es llegeixen de general a concret, com els noms.
+
+## La capçalera de tota zona: el registre SOA
+
+Tot fitxer de zona comença igual: el TTL per defecte i un registre **SOA** (_Start Of Authority_), que declara qui mana a la zona i cada quan s'ha de revisar.
+
+| Camp | Què vol dir |
+|---|---|
+| **Serial** | Número de versió. **S'ha d'apujar a cada canvi** |
+| **Refresh** | Cada quant el secundari pregunta si hi ha novetats |
+| **Retry** | Cada quant torna a provar si ha fallat |
+| **Expire** | Quan el secundari deixa de servir dades velles |
+| **Minimum** | Quant es guarden les respostes negatives |
+
+El serial és el camp que més maldecaps dona: si no l'apuges, el secundari **no s'assabenta de res**. El format recomanat és `AAAAMMDDNN`.
+
+## Els tipus de registre que faràs servir
+
+| Tipus | Per a què |
+|---|---|
+| **A** | Nom → adreça IPv4 |
+| **AAAA** | Nom → adreça IPv6 |
+| **PTR** | Adreça → nom, a la zona inversa |
+| **CNAME** | Àlies: un nom que apunta a un altre nom |
+| **MX** | Qui rep el correu del domini, amb prioritat |
+| **NS** | Quins servidors tenen l'autoritat de la zona |
+| **TXT** | Text lliure. S'usa per a verificacions i antispam |
+
+Dues regles: un **CNAME apunta a un nom**, mai a una IP, i el **MX també** ha d'apuntar a un nom que tingui el seu registre A.
+
+## Bones pràctiques
+
+<Callout kind="bones pràctiques">
+
+- **Apuja el serial a cada canvi**: si no, per a la resta del món la zona no s'ha tocat.
+- **Escriu els noms sencers amb punt final** quan vulguis un nom absolut; és l'error tipogràfic que més costa de veure.
+- **Cada màquina amb A i PTR**: la resolució inversa és la que fan servir els registres i els filtres de correu.
+- **CNAME per als serveis** (`www`, `correu`), A per a les màquines: així moure un servei és canviar una línia.
+- **Un TTL curt mentre proves**, i llarg quan la zona ja és estable.
+
+</Callout>
+
+## Problemes
+
+### Has canviat un registre i ningú no ho nota
+
+**Causa** El serial del SOA s'ha quedat igual.
+
+**Solució** Apuja'l sempre que toquis la zona, i torna a carregar-la.
+
+### Un nom es resol com `www.adria.internal.adria.internal`
+
+**Causa** S'ha escrit un nom absolut sense el punt final, i el servidor hi ha afegit el domini.
+
+**Solució** Posa el punt final, o escriu només la part de davant.
+
+### La resolució directa va i la inversa no
+
+**Causa** S'ha creat la zona directa i s'ha oblidat la `in-addr.arpa`.
+
+**Solució** Tota xarxa vol dues zones, i cada màquina un registre a cadascuna.
+
+### Un àlies apunta a un altre àlies
+
+**Causa** Un CNAME que porta a un CNAME encadena consultes i alguns clients no el segueixen.
+
+**Solució** Un CNAME ha d'apuntar sempre a un nom amb registre A.
+
+## Resum
+
+- Cada xarxa vol **dues zones**: la directa i la inversa `in-addr.arpa`.
+- El servidor que té l'original d'una zona n'és el **primari**.
+- Tot fitxer de zona comença amb `$TTL` i un **SOA**; el **serial s'apuja sempre**.
+- A i PTR per a les màquines, CNAME per als àlies, MX per al correu, NS per als servidors.
+- El **punt final** distingeix un nom absolut d'un de relatiu.
+
+**Següent:** a _[T2.4](../../teoria/t2-4-primari-secundari/) · Primari i secundari_ veuràs per què una zona no pot dependre d'una sola màquina.
+
+## Comprova el que has après
+
+<Quiz>
+  <Question id="t2-3-inversa" type="single" statement="Com es diu la zona inversa de la xarxa <code>192.168.1.0/24</code>?" explanation="La zona inversa utilitza PTR per relacionar una adreça amb un nom." options={[["<code>192.168.1.in-addr.arpa</code>", false], ["<code>1.168.192.in-addr.arpa</code>", true], ["<code>0.1.168.192.in-addr.arpa</code>", false], ["<code>arpa.in-addr.192.168.1</code>", false]]} />
+  <Question id="t2-3-serial" type="single" statement="Has canviat un registre però no has tocat el serial. Què passa?" explanation="El secundari compara el serial del SOA per saber si hi ha una versió nova." options={[["La zona no es carrega i el servei s'atura", false], ["El servidor secundari no detecta el canvi i continua amb les dades antigues", true], ["El TTL passa a ser zero", false], ["No passa res, el serial és informatiu", false]]} />
+  <Question id="t2-3-punt" type="single" statement="Dins de la zona <code>adria.internal</code>, què vol dir la línia <code>web IN A 192.168.1.20</code>?" explanation="El punt final indica un nom absolut; sense ell es pot afegir l’origen de la zona." options={[["Que <code>web.adria.internal</code> té l'adreça <code>192.168.1.20</code>", true], ["Que <code>web</code> és un àlies de la zona", false], ["Que és un error: falta el punt final", false], ["Que <code>web</code> és el servidor de correu", false]]} />
+  <Question id="t2-3-cname" type="single" statement="Quina línia assigna una IPv4 al nom www?" explanation="A assigna una IPv4. CNAME apunta a un nom, fins i tot si el text del destí sembla una IP." options={[["<code>intranet IN CNAME 192.168.1.8</code>", false], ["<code>intranet IN CNAME www.adria.internal.</code>", false], ["<code>www IN A 192.168.1.8</code>", true], ["<code>8 IN PTR ns1.adria.internal.</code>", false]]} />
+  <Question id="t2-3-afirmacions" type="multi" statement="Selecciona totes les afirmacions certes" explanation="La zona necessita coherència de SOA, serial i registres; un àlies no assigna una adreça." options={[["El registre PTR viu a la zona inversa.", true], ["Una zona s'ha de validar abans de recarregar-la.", true], ["El correu de l'administrador del SOA porta un punt on aniria l'arrova.", true], ["Un CNAME pot apuntar directament a una adreça IP.", false], ["Una zona inversa no necessita registre SOA.", false]]} />
+</Quiz>
+
+## Al currículum
+
+<details class="fold">
+<summary>Mostra els criteris</summary>
+
+**Contingut 2.2** Zones primàries i secundàries. Transferències de zona. Tipus de registres.
+
+**CA 2.3** Descriu l'estructura, nomenclatura i funcionalitat dels sistemes de noms jeràrquics.
+
+**CA 2.6** Afegeix registres de noms d'una zona nova, amb opcions de servidors de correu i àlies.
+
+</details>

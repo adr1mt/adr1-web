@@ -1,0 +1,120 @@
+---
+ref: T2.4
+title: "Primari i secundari"
+description: "Per què tota zona vol dos servidors i com es copia entre ells."
+---
+
+import Callout from "../../../components/Callout.astro";
+import Flow from "../../../components/Flow.astro";
+import Question from "../../../components/Question.astro";
+import Quiz from "../../../components/Quiz.astro";
+
+## Què sabràs fer en acabar
+
+- Explicar per què tota zona vol dos servidors com a mínim.
+- Configurar un servidor **secundari** que es descarregui la zona.
+- Explicar per què la transferència s'ha d'autoritzar només als secundaris.
+- Entendre el paper del **serial** i de la notificació.
+- Comprovar una transferència amb `dig AXFR`.
+
+## Un sol servidor de noms és un sol punt de fallada
+
+Si la teva zona la serveix una màquina i aquella màquina cau, els seus noms deixen d'existir per a tothom. No és que vagi lent: simplement no hi ha resposta.
+
+Per això el DNS està pensat des del primer dia perquè una zona la serveixin **diversos servidors**. Un té l'original i la resta en tenen una còpia que mantenen sola.
+
+El truc és que **tots responen igual d'autoritativament**. Al client li és indiferent a quin pregunta: no hi ha cap servidor «de segona».
+
+## Qui fa què
+
+|  | Primari | Secundari |
+|---|---|---|
+| **El fitxer de zona** | L'escrius tu | Se'l descarrega sol |
+| **On es guarda** | Amb la resta de configuració | En una carpeta de memòria cau |
+| **Es pot editar** | Sí, és l'original | Mai: es perdria a la següent còpia |
+| **Es declara com** | Primari de la zona | Secundari, amb la IP del primari |
+
+Els noms antics són _master_ i _slave_. Els trobaràs a molta documentació, però el vocabulari vigent és **primary** i **secondary**.
+
+## Com viatja la zona
+
+La còpia es diu **transferència de zona** i, a diferència de les consultes normals, va per **TCP**, també al port 53: pot ser molta informació de cop.
+
+<Flow steps={[{"n": "01", "t": "NOTIFY", "d": "El primari avisa: «he canviat alguna cosa»."}, {"n": "02", "t": "SOA", "d": "El secundari li demana el serial i el compara amb el seu."}, {"n": "03", "t": "AXFR", "d": "Si és més alt, es descarrega la zona sencera."}]} />
+
+Si ningú avisa, el secundari pregunta pel seu compte cada _refresh_ segons. I si el serial no ha pujat, **no es descarrega res**: aquesta és la raó de ser del camp.
+
+## Una transferència oberta és el mapa de la teva xarxa
+
+Una zona conté totes les màquines amb nom i adreça. Si qualsevol se la pot descarregar, li estàs regalant l'inventari sencer: servidors, impressores, còpies de seguretat i com es diu cada cosa.
+
+Els servidors actuals ja no permeten transferències a tothom, però encara se'n troben mal configurats on `dig AXFR` ho descarrega tot. És una de les primeres coses que prova qui audita una xarxa.
+
+La regla és simple: autoritza la transferència als teus secundaris i a ningú més. En entorns seriosos, a més, es signa amb una clau compartida (**TSIG**).
+
+## Bones pràctiques
+
+<Callout kind="bones pràctiques">
+
+- **Dos servidors per zona com a mínim**, i en xarxes o alimentacions diferents si pots.
+- **Es toca només el primari**: editar la còpia del secundari és treball que la pròxima transferència s'endurà.
+- **Autoritza la transferència només als secundaris**: oberta, és el mapa de la teva xarxa.
+- **Un registre NS per servidor** dins de la zona: si no hi és, per a fora el secundari no existeix.
+- **Comprova els dos serials** després de cada canvi; si no coincideixen, la còpia no s'ha fet.
+
+</Callout>
+
+## Problemes
+
+### El secundari no es descarrega la zona
+
+**Causa** O no s'ha apujat el serial, o el primari no l'autoritza a endur-se-la.
+
+**Solució** Apuja el serial i revisa a qui deixa transferir el primari.
+
+### El secundari respon dades antigues
+
+**Causa** Té una còpia vella i encara no ha rebut l'avís de canvi.
+
+**Solució** Compara els serials dels dos servidors i força la descàrrega.
+
+### Els clients no consulten mai el secundari
+
+**Causa** Només se'ls ha donat l'adreça del primari.
+
+**Solució** Reparteix els dos servidors de noms, no un de sol.
+
+### Qualsevol pot descarregar-se la zona sencera
+
+**Causa** La transferència està oberta a tothom.
+
+**Solució** Limita-la als secundaris que hagis declarat.
+
+## Resum
+
+- Tota zona vol **dos servidors**; tots dos responen com a autoritatius.
+- El **primari** té l'original; el **secundari** se'l descarrega.
+- La transferència va per **TCP** al port 53 i s’anomena **AXFR** quan copia tota la zona; IXFR transfereix només els canvis.
+- El **serial** és el que dispara la còpia; sense apujar-lo, no passa res.
+- Transferència **tancada** a qui no sigui secundari: una zona oberta és el mapa de la xarxa.
+
+Per configurar els servidors, consulta la _[G2.1](../../guies/g2-1-bind9/) · BIND 9_, que és el manual per muntar-ho tot, i les activitats.
+
+## Comprova el que has après
+
+<Quiz>
+  <Question id="t2-4-transport" type="single" statement="Per quin protocol de transport viatja una transferència de zona?" explanation="La transferència completa AXFR utilitza TCP; IXFR pot transferir només diferències." options={[["UDP, port 53", false], ["TCP, port 53", true], ["TCP, port 853", false], ["UDP, port 67", false]]} />
+  <Question id="t2-4-serial" type="single" statement="Què fa que el secundari es descarregui la zona altra vegada?" explanation="Sense incrementar el serial, el secundari no identifica el canvi com una versió nova." options={[["Que hagi passat el TTL", false], ["Que el serial del primari sigui més alt que el seu", true], ["Que es reiniciï el servei del primari", false], ["Que el client li ho demani", false]]} />
+  <Question id="t2-4-fitxer" type="single" statement="Al servidor secundari, qui escriu el fitxer de zona?" explanation="La còpia secondary la manté el servei a partir del primary; no s’edita com una zona original." options={[["L'administrador, copiant-lo del primari", false], ["El mateix servidor, en fer la transferència", true], ["El servei DHCP", false], ["No hi ha fitxer: tot es guarda a memòria", false]]} />
+  <Question id="t2-4-seguretat" type="single" statement="Per què s'ha de limitar qui es pot descarregar una zona sencera?" explanation="Una transferència oberta revela la zona sencera; cal limitar els destinataris autoritzats." options={[["Perquè les transferències consumeixen molta memòria", false], ["Perquè qui es descarrega la zona obté l'inventari sencer de la xarxa", true], ["Perquè si no, el secundari no es descarrega res", false], ["Perquè el port 53 TCP està tancat per defecte", false]]} />
+  <Question id="t2-4-afirmacions" type="multi" statement="Selecciona totes les afirmacions certes" explanation="Primary i secondary poden respondre autoritativament; la còpia depèn del serial i de les autoritzacions." options={[["El secundari respon amb la mateixa autoritat que el primari.", true], ["A la zona hi ha d'haver un registre NS per a cada servidor.", true], ["El fitxer del secundari no s'ha d'editar a mà.", true], ["El secundari només serveix quan el primari està aturat.", false], ["La transferència es fa amb el mateix mecanisme que una consulta normal.", false]]} />
+</Quiz>
+
+## Al currículum
+
+<details class="fold">
+<summary>Mostra els criteris</summary>
+
+**Contingut 2.2** Zones primàries i secundàries. Transferències de zona. Tipus de registres.
+
+</details>
