@@ -123,7 +123,7 @@ Per això tot resolutor ha de limitar qui li pot preguntar. Un servidor de la te
    dig www.upc.edu | grep -A1 "ANSWER SECTION"
    ```
 
-   Compara el número de la segona columna: és el TTL. Pot baixar si el resolvedor conserva la resposta; si la renova o respon un altre node, pot tornar a pujar.
+   Compara el número de la segona columna: és el TTL. Pot baixar si el resolutor conserva la resposta; si la renova o respon un altre node, pot tornar a pujar.
 
 ## Bones pràctiques
 
@@ -185,7 +185,7 @@ Per això tot resolutor ha de limitar qui li pot preguntar. Un servidor de la te
 
 <Quiz>
   <Question id="t2-2-lectura" type="single" statement="A <code>aula3.smx.institut.cat</code>, quin és el TLD?" explanation="El DNS distribueix autoritat entre zones; no és una única llista central de tots els noms." options={[["<code>aula3</code>", false], ["<code>institut</code>", false], ["<code>cat</code>", true], ["<code>smx</code>", false]]} />
-  <Question id="t2-2-tipus" type="single" statement="Quina és la diferència principal entre un servidor recursiu i un d'autoritatiu?" explanation="Un resolvedor cerca respostes; un autoritatiu respon per les zones que gestiona." options={[["El recursiu treballa amb UDP i l'autoritatiu amb TCP", false], ["El recursiu busca la resposta per als clients; l'autoritatiu només respon de la seva zona", true], ["L'autoritatiu té memòria cau i el recursiu no", false], ["El recursiu només serveix noms inventats", false]]} />
+  <Question id="t2-2-tipus" type="single" statement="Quina és la diferència principal entre un servidor recursiu i un d'autoritatiu?" explanation="Un resolutor cerca respostes; un autoritatiu respon per les zones que gestiona." options={[["El recursiu treballa amb UDP i l'autoritatiu amb TCP", false], ["El recursiu busca la resposta per als clients; l'autoritatiu només respon de la seva zona", true], ["L'autoritatiu té memòria cau i el recursiu no", false], ["El recursiu només serveix noms inventats", false]]} />
   <Question id="t2-2-delegacio" type="single" statement="Què vol dir que una zona està delegada?" explanation="La delegació assenyala els servidors responsables d’una part de l’arbre amb registres NS." options={[["Que la responsabilitat d'una branca passa a un altre servidor de noms", true], ["Que la zona s'ha copiat a un servidor secundari", false], ["Que el domini ha caducat", false], ["Que el servidor deixa de fer recursió", false]]} />
   <Question id="t2-2-ttl" type="single" statement="Has canviat una adreça a la teva zona i un client encara veu l'antiga. Què ho explica millor?" explanation="El TTL limita quant temps es pot conservar una resposta a la memòria cau." options={[["El client té l'adreça a <code>/etc/hosts</code> segur", false], ["Té la resposta antiga a la memòria cau i encara no s'ha esgotat el TTL", true], ["El servidor autoritatiu ha deixat de respondre", false], ["Cal reiniciar el client perquè agafi el canvi", false]]} />
   <Question id="t2-2-afirmacions" type="multi" statement="Selecciona totes les afirmacions certes" explanation="Autoritat, recursió i memòria cau són papers diferents; la bandera aa indica una resposta autoritativa." options={[["Els noms es llegeixen de dreta a esquerra, de més general a més concret.", true], ["Un recursiu obert a tot Internet és un problema de seguretat.", true], ["Els servidors arrel guarden tots els noms d'Internet.", false], ["Convé tenir dos servidors de noms per zona.", true], ["El TTL el decideix el client que pregunta.", false]]} />
