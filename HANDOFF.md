@@ -6,29 +6,23 @@ Web pública del módulo 0227 (Astro): RA1 (DHCP), RA2 (DNS), blog y herramienta
 Fuente de los RA: repo privado `adr1mt/m7-serveis-en-xarxa` (HTML); aquí el MDX
 se convierte y se revisa a mano. RA3–RA8 no tienen web pública hasta que se migren.
 
-## Estado (29/10/2026)
+## Estado (16/11/2026)
 
-- RA2 migrado en la rama `feat/ra2`: T2.1–T2.4, G2.1, A2.1–A2.4 e índice
-  (`src/pages/ra2/index.astro`, con su introducción y el recordatori de `.internal`).
-- La web ya admite varios RA: una colección `ra` (`src/content/raN/…`), la lista
-  `RAS` en `src/lib/site.ts`, la ruta `src/pages/[ra]/[...slug].astro`, `RaNav`
-  (antes `Ra1Nav`) y `RaIndex`. Las URL del RA1 no cambian.
-- `scripts/convert-ra.py`: conversor HTML → MDX con las reglas del RA1 (Callout,
-  Flow, Quiz, problemas con **Causa**/**Solució**, currículum plegado, enlaces
-  relativos desde la raíz del RA).
-- Verificado: `npm run check` (0 errores), `npm run build` (sin errores), el HTML
-  del RA1 idéntico al de `main` en texto y enlaces, todas las palabras del HTML
-  del RA2 presentes en las páginas generadas, 0 enlaces internos rotos, sin scroll
-  horizontal a 320 px en las 10 páginas del RA2, test de T2.4 funcionando, tema
-  claro y oscuro.
-- Sin push: falta revisarlo y fusionar `feat/ra2` en `main`.
+- RA2 publicado en `main`: T2.1–T2.4, G2.1 y A2.1–A2.5. La web admite varios RA
+  (colección `src/content/raN/`, lista `RAS` en `src/lib/site.ts`).
+- A2.5 «El mateix DNS en una xarxa /8» nueva: A2.3 repetida en 10.0.0.0/8 más
+  diez casos de diagnóstico (coherencia A/PTR, zona inversa /8, CNAME, serial).
+  Convertida con `scripts/convert-ra.py` a una carpeta temporal y copiada sola,
+  para no pisar las demás páginas revisadas a mano.
+- Verificado: `npm run check` (0 errores), `npm run build`, A2.5 sin scroll
+  horizontal a 320 px y sin enlaces internos rotos. Tema claro sin revisar
+  (mismos componentes que A2.3).
 
 ## Siguiente paso
 
-1. Revisar el RA2 en `npm run preview` y fusionar `feat/ra2` en `main`.
-2. Comprobar el RA2 en la web desplegada cuando acabe GitHub Actions.
-3. Al portar cambios del repo privado, cruzar las actividades por contenido,
-   no por número de fichero.
+1. Comprobar la A2.5 en la web desplegada cuando acabe GitHub Actions.
+2. Al portar cambios del repo privado, convertir a carpeta temporal y copiar
+   solo la página cambiada; cruzar actividades por contenido, no por número.
 
 ## Diferencias conscientes con el HTML del RA2
 

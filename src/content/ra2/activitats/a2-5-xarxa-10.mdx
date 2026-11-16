@@ -1,0 +1,330 @@
+---
+ref: A2.5
+title: "El mateix DNS en una xarxa /8"
+description: "Muntes de nou DHCP i DNS a la 10.0.0.0/8 i descobreixes què canvia a la zona inversa."
+---
+
+import Callout from "../../../components/Callout.astro";
+
+## Amb què treballaràs
+
+### Abans de començar
+
+Tenir feta l'activitat [A2.3](../../activitats/a2-3-kea-i-bind/) i el seu document. Del [RA1](../../../ra1/), la teoria [T1.0](../../../ra1/teoria/t1-0-repas-adrecament/) (adreçament i màscares). D'aquest RA, la teoria [T2.3](../../teoria/t2-3-zones-i-registres/) i la guia [G2.1](../../guies/g2-1-bind9/).
+
+| Màquina | Targetes | Paper |
+|---|---|---|
+| Ubuntu **Server** | puigcastellar1 + personal1 | DNS, DHCP i porta d'enllaç |
+| Ubuntu **Desktop** | només personal1 | Client, sense configurar res |
+
+És la mateixa feina de l'[A2.3](../../activitats/a2-3-kea-i-bind/), en una **màquina nova** i amb una altra xarxa: la `10.0.0.0/8` en lloc de la `192.168.1.0/24`. Segueix el teu document i atura't a cada adreça i a cada màscara: són les línies que canvien.
+
+## Què has de fer
+
+1. Configurar el servidor amb `10.0.0.8/8` a `personal1`.
+2. Muntar BIND amb la zona directa `elteunom.internal` i la zona inversa que correspon a la xarxa `10.0.0.0/8`.
+3. Instal·lar **Kea** i repartir adreces de la xarxa `10.0.0.0/8`, amb el rang que decideixis, el teu servidor com a DNS i `elteunom.internal` com a domini.
+4. Crear els registres de la taula, i els PTR de totes les adreces a la inversa.
+5. Activar l'**encaminament i el NAT** perquè el client tingui Internet.
+6. Respondre les preguntes i els casos del final de la pàgina.
+
+| Nom | Tipus | Valor |
+|---|---|---|
+| `maquina1` | A | `10.0.0.20` |
+| `servidor2` | A | `10.1.0.21` |
+| `servidor3` | A | `10.2.3.30` |
+| `intranet` | CNAME | Àlies de `maquina1` |
+| La zona | TXT | Un missatge breu teu |
+
+### On trobaràs ajuda
+
+| Què has de fer | On ho tens |
+|---|---|
+| Saber què és xarxa i què és equip en una /8 | Teoria [T1.0](../../../ra1/teoria/t1-0-repas-adrecament/) |
+| BIND, ACL, zona directa i inversa | Guia [G2.1](../../guies/g2-1-bind9/) i teoria [T2.3](../../teoria/t2-3-zones-i-registres/) |
+| Kea, encaminament i NAT | El teu document de l'[A2.3](../../activitats/a2-3-kea-i-bind/) |
+
+## La xarxa canvia a tot arreu
+
+<Callout kind="recordatori">
+
+La xarxa no surt només a la zona. També és a Netplan, a l'ACL de BIND, al `listen-on`, a la subxarxa i al rang de Kea i a la porta d'enllaç que reparteix. Una sola línia amb la xarxa vella deixa el client sense servei. Kea i BIND, com sempre, només per `personal1`.
+
+</Callout>
+
+## Quatre adreces, una sola xarxa
+
+`10.0.0.20`, `10.1.0.21` i `10.2.3.30` semblen de xarxes diferents, però amb una màscara `/8` només el primer octet és de xarxa. Totes tres són a la mateixa xarxa, i el client les ha d'arribar sense passar per cap encaminador.
+
+**La zona inversa ho reflecteix.** El nom de la zona surt dels octets que fixa la màscara, i el nom de cada PTR, dels que queden lliures. Compta'ls abans d'escriure res: és el que més canvia respecte de l'[A2.3](../../activitats/a2-3-kea-i-bind/).
+
+**El rang de Kea tampoc no pot trepitjar els noms.** En una xarxa tan gran és fàcil deixar un rang que inclogui alguna de les adreces de la taula.
+
+## Com sabràs que ho has fet bé
+
+Abans d'entregar, has de poder respondre **sí** a totes aquestes preguntes, amb la sortida d'una comanda al davant:
+
+- El client, **sense tocar-hi res**, rep una adreça del teu rang amb màscara `/8`, la teva porta d'enllaç i el teu DNS.
+- `named-checkconf` no diu res i `named-checkzone` diu `OK` per a les dues zones.
+- Des del client es resolen `maquina1`, `servidor2`, `servidor3`, l'àlies `intranet` i el registre TXT.
+- Des del client, la consulta inversa de `10.0.0.20`, `10.1.0.21` i `10.2.3.30` torna el nom correcte.
+- El client resol noms d'Internet i hi fa `ping`.
+
+## Problemes
+
+### La directa funciona, però la inversa només resol una part de les adreces
+
+**Causa** La zona inversa és de l'estil de l'[A2.3](../../activitats/a2-3-kea-i-bind/): només cobreix les adreces que comencen igual que l'equip que has provat.
+
+**Solució** Torna a comptar quants octets fixa la màscara `/8`, canvia el nom de la zona i reescriu els PTR.
+
+### El servidor respon des d'ell mateix, però el client rep `REFUSED`
+
+**Causa** L'ACL de BIND encara té la xarxa de l'[A2.3](../../activitats/a2-3-kea-i-bind/).
+
+**Solució** Posa-hi la xarxa nova, amb la seva màscara, i torna a validar i recarregar.
+
+### El client no rep adreça
+
+**Causa** La subxarxa de Kea no coincideix amb l'adreça i la màscara de `personal1`, o el rang en queda fora.
+
+**Solució** Compara la sortida d'`ip -brief a` al servidor amb la subxarxa i el rang de Kea, i mira'n els registres.
+
+### Has canviat un registre i el client encara veu el valor antic
+
+**Causa** No has apujat el serial o no has recarregat la zona.
+
+**Solució** Apuja el serial, valida, recarrega i pregunta amb `dig @10.0.0.8`.
+
+## A. Preguntes de coherència i raonament
+
+### 1. La directa funciona, però la inversa no
+
+Des d'un client executes:
+
+```bash title="Terminal"
+nslookup servidor2.elteunom.internal
+```
+
+Obtens correctament `10.1.0.21`. En canvi, amb aquesta comanda no obtens el nom de l'equip:
+
+```bash title="Terminal"
+nslookup 10.1.0.21
+```
+
+- Què pot estar fallant?
+- Vol dir que BIND està completament mal configurat?
+- Quin registre hauries de revisar?
+
+### 2. Dos registres que no coincideixen
+
+A la zona directa tens:
+
+```text title="Configuració · BIND 9"
+maquina1    IN A      10.0.0.20
+servidor2   IN A      10.1.0.21
+```
+
+I a la inversa:
+
+```text title="Configuració · BIND 9"
+20.0.0      IN PTR    servidor2.elteunom.internal.
+21.0.1      IN PTR    maquina1.elteunom.internal.
+```
+
+- Quin problema hi ha?
+- Què passarà en fer una consulta directa? I una d'inversa?
+- Corregeix els registres PTR.
+
+### 3. El registre CNAME
+
+Has creat aquest registre:
+
+```text title="Configuració · BIND 9"
+intranet    IN CNAME    servidor2.elteunom.internal.
+```
+
+Un company proposa afegir-hi també:
+
+```text title="Configuració · BIND 9"
+intranet    IN A    10.1.0.21
+```
+
+- Cal crear tots dos registres?
+- Quina diferència hi ha entre un registre A i un CNAME?
+- Quin problema pot provocar tenir tots dos registres per al mateix nom?
+
+### 4. El registre A apunta a una IP equivocada
+
+Un equip té l'adreça `10.0.0.25`, però a BIND hi ha:
+
+```text title="Configuració · BIND 9"
+maquina1    IN A    10.0.0.50
+```
+
+- Quina informació tornarà una consulta DNS?
+- Vol dir que l'ordinador ha canviat realment d'adreça IP?
+- Com ho solucionaries?
+
+## B. Casos pràctics de diagnòstic
+
+### 5. La zona inversa no funciona
+
+La xarxa de l'aula és la `10.0.0.0/8`. L'administrador ha creat aquesta zona:
+
+```text title="Configuració · BIND 9"
+zone "0.0.10.in-addr.arpa" {
+    type primary;
+    file "/etc/bind/zones/db.10";
+};
+```
+
+I dins del fitxer:
+
+```text title="Configuració · BIND 9"
+20    IN PTR maquina1.elteunom.internal.
+21    IN PTR servidor2.elteunom.internal.
+```
+
+1. És correcta la zona inversa per a una xarxa `/8`?
+2. Quina zona s'hauria de fer servir?
+3. Són correctes els registres PTR?
+4. Corregeix tota la configuració per a `maquina1` (`10.0.0.20`) i `servidor2` (`10.1.0.21`).
+
+### 6. Els noms es resolen, però les adreces inverses no
+
+Un administrador comprova que tots els registres A funcionen. En canvi, aquesta consulta no torna cap resultat vàlid:
+
+```bash title="Terminal"
+dig -x 10.2.3.30
+```
+
+- Quin tipus de registre està consultant?
+- Quin fitxer de zona hauria de revisar?
+- Quin registre hi hauria d'haver perquè la consulta funcionés?
+
+### 7. Has canviat una adreça IP
+
+L'equip `servidor2` tenia l'adreça `10.1.0.21` i ara fa servir la `10.1.0.35`. L'administrador actualitza el registre A, però s'oblida del PTR.
+
+- Què passarà en consultar el nom de l'equip?
+- Què passarà en fer la consulta inversa de la seva adreça nova? I de l'antiga?
+- Quins dos registres s'havien d'actualitzar?
+
+## C. Troba els errors
+
+### 8. Auditoria d'una zona directa
+
+L'administrador ha creat aquest fitxer de zona:
+
+```text title="Configuració · BIND 9"
+$TTL 86400
+@   IN SOA ns.elteunom.internal. admin.elteunom.internal. (
+        2026111601
+        3600
+        1800
+        604800
+        86400
+)
+
+@       IN NS    ns.elteunom.internal.
+
+ns       IN A     10.0.0.8
+pc01     IN A     10.0.0.20
+pc02     IN A     10.0.0.21
+web      IN CNAME pc01.elteunom.internal
+mail     IN A     10.0.0.8
+```
+
+- Quin registre permet identificar el servidor DNS de la zona?
+- Quina diferència hi ha entre `web` i `pc01`?
+- Hi ha una línia amb un error que `named-checkzone` no detecta. Quina és, i quin nom acabarà resolent en realitat?
+- Hi ha un equip anomenat `mail`. Pot rebre correu el domini `elteunom.internal`? Quin registre hi falta?
+- Es podria fer servir `web` per accedir a un servidor web instal·lat en una altra màquina? Què hauries de canviar?
+- Què passaria si es modifica un registre A però no s'actualitza el número de sèrie de la zona?
+
+### 9. Auditoria d'una zona inversa
+
+La xarxa és la `10.0.0.0/8` i l'administrador ha creat:
+
+```text title="Configuració · BIND 9"
+$TTL 86400
+@   IN SOA ns.elteunom.internal. admin.elteunom.internal. (
+        2026111601
+        3600
+        1800
+        604800
+        86400
+)
+
+@       IN NS    ns.elteunom.internal.
+
+20.0.0     IN PTR pc01.elteunom.internal.
+21.0.0     IN PTR pc02.elteunom.internal.
+30.3.2     IN PTR servidor3.elteunom.internal.
+```
+
+Els equips tenen aquestes adreces: `pc01` `10.0.0.20`, `pc02` `10.0.0.21` i `servidor3` `10.2.3.30`.
+
+- És correcta la configuració? Amb quin nom s'ha de declarar aquesta zona?
+- Què representa cadascun dels números que hi ha abans d'`IN PTR`?
+- Per què s'escriuen en ordre invers?
+- Quina consulta faries per comprovar cada registre?
+
+## D. Repte final
+
+### 10. Alguna cosa passa amb el DNS de l'aula
+
+Un company t'entrega aquesta informació. La xarxa configurada és la `10.0.0.0/8` i la zona directa conté:
+
+```text title="Configuració · BIND 9"
+ns          IN A      10.0.0.8
+pc01        IN A      10.0.0.20
+pc02        IN A      10.1.0.21
+servidor3   IN A      10.2.3.30
+intranet    IN CNAME  servidor3.elteunom.internal.
+```
+
+La zona inversa està declarada com a `zone "0.0.10.in-addr.arpa"` i conté:
+
+```text title="Configuració · BIND 9"
+20         IN PTR pc01.elteunom.internal.
+21         IN PTR pc02.elteunom.internal.
+30         IN PTR servidor3.elteunom.internal.
+```
+
+A més, el professor indica que:
+
+- `pc01` es resol correctament.
+- `pc02` torna una adreça IP, però la seva consulta inversa falla.
+- `servidor3` funciona correctament en resolució directa.
+- `intranet` torna una adreça IP.
+
+La teva feina:
+
+1. Identifica tots els errors de configuració.
+2. Explica per què es produeixen.
+3. Corregeix la declaració de la zona inversa.
+4. Corregeix tots els registres PTR.
+5. Escriu les comandes per comprovar que la resolució directa i la inversa funcionen.
+
+## Què has d’entregar
+
+Un **document tècnic** amb els teus fitxers de configuració i les captures de la comprovació. Marca-hi cada línia que hagis canviat respecte de l'[A2.3](../../activitats/a2-3-kea-i-bind/).
+
+Afegeix-hi les respostes raonades dels deu casos. Quan demanin una correcció, escriu els registres o la declaració corregits sencers.
+
+I respon, amb les teves paraules: **per què una sola zona inversa cobreix `10.0.0.20`, `10.1.0.21` i `10.2.3.30`, i per què ara el nom de cada PTR porta tres números en lloc d'un?**
+
+## Al currículum
+
+<details class="fold">
+<summary>Mostra els criteris</summary>
+
+**CA 2.4** Instal·la un servei jeràrquic de resolució de noms.
+
+**CA 2.6** Afegeix registres de noms d'una zona nova, amb opcions de servidors de correu i àlies.
+
+**CA 2.8** Comprova el funcionament correcte del servidor.
+
+</details>
