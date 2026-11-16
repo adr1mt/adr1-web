@@ -10,7 +10,7 @@ se convierte y se revisa a mano. RA3–RA8 no tienen web pública hasta que se m
 
 - RA2 publicado en `main`: T2.1–T2.4, G2.1 y A2.1–A2.5. La web admite varios RA
   (colección `src/content/raN/`, lista `RAS` en `src/lib/site.ts`).
-- A2.5 «El mateix DNS en una xarxa /8» nueva: A2.3 repetida en 10.0.0.0/8 más
+- A2.5 «DNS en una xarxa 10.0.0.0/8» nueva: A2.3 repetida en 10.0.0.0/8 más
   diez casos de diagnóstico (coherencia A/PTR, zona inversa /8, CNAME, serial).
   Convertida con `scripts/convert-ra.py` a una carpeta temporal y copiada sola,
   para no pisar las demás páginas revisadas a mano.

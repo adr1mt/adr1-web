@@ -1,7 +1,7 @@
 ---
 ref: A2.5
-title: "El mateix DNS en una xarxa /8"
-description: "Muntes de nou DHCP i DNS a la 10.0.0.0/8 i descobreixes què canvia a la zona inversa."
+title: "DNS en una xarxa 10.0.0.0/8"
+description: "Zona directa i inversa d'una xarxa /8, i casos per diagnosticar."
 ---
 
 import Callout from "../../../components/Callout.astro";
@@ -17,7 +17,7 @@ Tenir feta l'activitat [A2.3](../../activitats/a2-3-kea-i-bind/) i el seu docume
 | Ubuntu **Server** | puigcastellar1 + personal1 | DNS, DHCP i porta d'enllaç |
 | Ubuntu **Desktop** | només personal1 | Client, sense configurar res |
 
-És la mateixa feina de l'[A2.3](../../activitats/a2-3-kea-i-bind/), en una **màquina nova** i amb una altra xarxa: la `10.0.0.0/8` en lloc de la `192.168.1.0/24`. Segueix el teu document i atura't a cada adreça i a cada màscara: són les línies que canvien.
+Munta en una **màquina nova** el mateix que a l'[A2.3](../../activitats/a2-3-kea-i-bind/) (Kea, BIND i sortida a Internet), però a la xarxa `10.0.0.0/8`. El servidor és el `10.0.0.8`.
 
 ## Què has de fer
 
@@ -52,13 +52,11 @@ La xarxa no surt només a la zona. També és a Netplan, a l'ACL de BIND, al `li
 
 </Callout>
 
-## Quatre adreces, una sola xarxa
+## Una sola xarxa /8
 
-`10.0.0.20`, `10.1.0.21` i `10.2.3.30` semblen de xarxes diferents, però amb una màscara `/8` només el primer octet és de xarxa. Totes tres són a la mateixa xarxa, i el client les ha d'arribar sense passar per cap encaminador.
-
-**La zona inversa ho reflecteix.** El nom de la zona surt dels octets que fixa la màscara, i el nom de cada PTR, dels que queden lliures. Compta'ls abans d'escriure res: és el que més canvia respecte de l'[A2.3](../../activitats/a2-3-kea-i-bind/).
-
-**El rang de Kea tampoc no pot trepitjar els noms.** En una xarxa tan gran és fàcil deixar un rang que inclogui alguna de les adreces de la taula.
+- Amb màscara `/8`, només el primer octet és de xarxa: `10.0.0.20`, `10.1.0.21` i `10.2.3.30` són a la mateixa xarxa.
+- El nom de la zona inversa surt dels octets de xarxa, i el de cada PTR, dels octets d'equip.
+- El rang de Kea ha de deixar fora les adreces de la taula.
 
 ## Com sabràs que ho has fet bé
 
