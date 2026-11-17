@@ -41,7 +41,7 @@ const refNumber = (page: RaPage) => Number(page.data.ref.split('.')[1]);
 
 /** The pages of one RA in reading order: theory, guides, activities; each by its number. */
 export async function getRaPages(ra: RaId) {
-  const pages = await getCollection('ra', (page) => raOf(page) === ra);
+  const pages = await getCollection('ra', (page) => raOf(page) === ra && !page.data.draft);
   return pages.sort((a, b) => sectionRank(a) - sectionRank(b) || refNumber(a) - refNumber(b));
 }
 

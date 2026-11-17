@@ -11,6 +11,8 @@ const ra = defineCollection({
     ref: z.string().regex(/^[TGA][1-8]\.\d+$/),
     title: z.string(),
     description: z.string(),
+    // A draft page is kept in the repo but not built: no URL, no nav, no search.
+    draft: z.boolean().default(false),
   }),
 });
 
